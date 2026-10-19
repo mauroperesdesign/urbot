@@ -163,8 +163,14 @@ if command -v netfilter-persistent >/dev/null && iptables -S INPUT 2>/dev/null |
     || iptables -I INPUT 5 -p tcp -m state --state NEW -m multiport --dports "$PORTS" -j ACCEPT
   netfilter-persistent save >/dev/null
   warn "Oracle Cloud: liberei $PORTS no firewall da VPS. Se o site não abrir, libere também essas portas na 'Security List' do painel da hospedagem."
+elif [ "$PROXY" = cloudpanel ]; then
+  # O CloudPanel gerencia o próprio firewall (painel → Security); não mexemos para não bloquear o acesso
+  warn "CloudPanel: firewall mantido como está (portas 80/443 já são liberadas pelo painel)."
 else
-  ufw allow OpenSSH >/dev/null
+  # Libera a porta SSH realmente em uso (pode não ser a 22) antes de ativar o firewall
+  SSH_PORTS=$(ss -ltnp 2>/dev/null | awk '/sshd/ {n=split($4,a,":"); print a[n]}' | sort -u)
+  [ -n "$SSH_PORTS" ] || SSH_PORTS=22
+  for port in $SSH_PORTS; do ufw allow "$port/tcp" >/dev/null; done
   for port in ${PORTS//,/ }; do ufw allow "$port/tcp" >/dev/null; done
   ufw --force enable >/dev/null
 fi

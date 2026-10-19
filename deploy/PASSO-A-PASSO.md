@@ -36,9 +36,9 @@ O repositório é privado, então a VPS precisa de uma chave só de leitura:
 ## Passo 4 — Entrar na VPS
 No Windows, abra o **PowerShell** (tecla Windows → digite “PowerShell”) e rode:
 ```
-ssh root@IP-DA-VPS
+ssh -p 22022 root@IP-DA-VPS
 ```
-Responda `yes` na primeira vez e digite a senha de root (ela não aparece enquanto você digita — é normal).
+(A porta `22022` é a da sua VPS — veja “Acesso SSH” no painel da hospedagem.) Responda `yes` na primeira vez e digite a senha de root (ela não aparece enquanto você digita — é normal).
 
 ## Passo 5 — Baixar o projeto
 Cole na VPS (troque `SEU_TOKEN` pelo token do passo 3):
