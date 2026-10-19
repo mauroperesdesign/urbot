@@ -109,7 +109,10 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
           up.findPreviousUploads().then((prev) => { if (prev.length) up.resumeFromPreviousUpload(prev[0]); up.start(); });
         });
       } catch (e) {
-        update(i, { status: 'erro', message: e instanceof Error ? e.message.slice(0, 160) : 'Falha no envio' }); continue;
+        // Se o envio retomável falhar (ex.: proxy), tenta o envio comum antes de desistir
+        update(i, { message: 'tentando envio simples…' });
+        const { error: plain } = await supabase.storage.from(bucket).upload(path, file, { contentType: mime, upsert: false });
+        if (plain) { update(i, { status: 'erro', message: (e instanceof Error ? e.message : plain.message).slice(0, 160) }); continue; }
       }
 
       if (role === 'cover') {

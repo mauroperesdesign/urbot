@@ -63,7 +63,9 @@ node scripts/import-acervo.mjs --publicar          # publica (uso interno autori
 Os materiais entram como **restritos** (só membros aprovados). Pendências de revisão (autor a confirmar, título diferente na capa, ordem de faixas) ficam visíveis em **/admin/materiais → Só com pendências**. O script é idempotente: rodar de novo atualiza em vez de duplicar.
 
 ### 6. Publicar na internet
-Recomendado: [Vercel](https://vercel.com) → *Import Project* → este repositório → defina `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (e, opcional, `NEXT_PUBLIC_CONTACT_EMAIL`). **Não** coloque a `service_role` na Vercel.
+**Na VPS própria (escolhido para este projeto):** siga [`deploy/PASSO-A-PASSO.md`](deploy/PASSO-A-PASSO.md) — um instalador configura Supabase, site, HTTPS, firewall, backup e importação.
+
+Alternativa sem servidor: [Vercel](https://vercel.com) → *Import Project* → este repositório → defina `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (e, opcional, `NEXT_PUBLIC_CONTACT_EMAIL`). **Não** coloque a `service_role` na Vercel.
 
 ## Segurança
 

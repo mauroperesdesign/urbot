@@ -87,14 +87,13 @@ await check(3, 'Cadastrar um material com capa e metadados', async () => {
 
 await check(4, 'Fazer upload de um arquivo real', async () => {
   await page.reload();
-  await page.locator('label', { hasText: 'Enviar PDF/EPUB principal' }).locator('input[type=file]').setInputFiles(unique('teste.pdf'));
+  const pdfCopy = unique('teste.pdf');
+  await page.locator('label', { hasText: 'Enviar PDF/EPUB principal' }).locator('input[type=file]').setInputFiles(pdfCopy);
   await page.getByText(/Pronto · 9 páginas/).waitFor({ timeout: 60000 });
   const row = sql(`select page_count || '|' || processing_status || '|' || (path is not null) from files where material_id = '${materialId}' and role = 'main'`);
   assert(/^9\|ready\|(t|true)$/.test(row), `arquivo não registrado corretamente (${row})`);
-  // arquivo idêntico a uma faixa já existente deve ser recusado (detecção por SHA-256)
-  const dupMat = sql(`select id from materials where slug = 'mandingas-de-preto-velho'`);
-  await page.goto(`${BASE}/admin/materiais/${dupMat}`);
-  await page.locator('label', { hasText: 'Enviar faixas de áudio' }).locator('input[type=file]').setInputFiles(path.join(FIX, 'faixa.m4a'));
+  // enviar o mesmo arquivo de novo deve ser recusado (detecção por SHA-256)
+  await page.locator('label', { hasText: 'Arquivo complementar' }).locator('input[type=file]').setInputFiles(pdfCopy);
   await page.getByText(/Arquivo idêntico já existe/).waitFor({ timeout: 30000 });
   await shot(page, 'desktop-admin-arquivos');
 });
