@@ -2,6 +2,8 @@
 
 Tempo total: ~30–40 minutos (a maior parte é o instalador trabalhando sozinho).
 
+> **Oracle Cloud (VPS OCI):** o usuário pode ser `ubuntu` em vez de `root`. Nesse caso entre com `ssh ubuntu@IP` e rode `sudo -i` antes dos comandos.
+
 Você vai precisar de:
 - o **IP** da VPS e a **senha de root** (estão no painel da hospedagem / e-mail de boas-vindas);
 - o **domínio** (ex.: `entenda.com.br`) e acesso ao lugar onde ele é gerenciado (Registro.br, HostGator, Cloudflare…);

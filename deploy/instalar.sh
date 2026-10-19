@@ -156,11 +156,18 @@ fi
 
 # ------------------------------------------------------------------ 6. firewall
 say "7/10 Ativando o firewall"
-ufw allow OpenSSH >/dev/null
-ufw allow 80/tcp >/dev/null
-ufw allow 443/tcp >/dev/null
-[ "$PROXY" = cloudpanel ] && ufw allow 8443/tcp >/dev/null
-ufw --force enable >/dev/null
+PORTS="80,443"; [ "$PROXY" = cloudpanel ] && PORTS="80,443,8443"
+if command -v netfilter-persistent >/dev/null && iptables -S INPUT 2>/dev/null | grep -q -- '-j REJECT'; then
+  # Imagens Ubuntu da Oracle Cloud (OCI) já trazem um firewall iptables que só libera o SSH
+  iptables -C INPUT -p tcp -m multiport --dports "$PORTS" -j ACCEPT 2>/dev/null \
+    || iptables -I INPUT 5 -p tcp -m state --state NEW -m multiport --dports "$PORTS" -j ACCEPT
+  netfilter-persistent save >/dev/null
+  warn "Oracle Cloud: liberei $PORTS no firewall da VPS. Se o site não abrir, libere também essas portas na 'Security List' do painel da hospedagem."
+else
+  ufw allow OpenSSH >/dev/null
+  for port in ${PORTS//,/ }; do ufw allow "$port/tcp" >/dev/null; done
+  ufw --force enable >/dev/null
+fi
 
 # ------------------------------------------------------------------ 7. admin
 say "8/10 Criando o seu usuário administrador"
