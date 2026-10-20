@@ -81,7 +81,12 @@ if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split("."
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null
   apt-get install -y -qq nodejs >/dev/null
 fi
-id biblioteca >/dev/null 2>&1 || useradd --system --home "$BASE" --shell /usr/sbin/nologin biblioteca
+id biblioteca >/dev/null 2>&1 || useradd --system --home /var/lib/biblioteca --shell /usr/sbin/nologin biblioteca
+# Home própria e gravável (cache do npm); $BASE continua fechado, mas o grupo
+# do serviço precisa atravessá-lo para chegar ao app.
+install -d -o biblioteca -g biblioteca -m 750 /var/lib/biblioteca
+usermod -d /var/lib/biblioteca biblioteca
+chown root:biblioteca "$BASE"
 cat > "$APP/.env.local" <<EOF
 NEXT_PUBLIC_SUPABASE_URL=https://$API
 NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON
