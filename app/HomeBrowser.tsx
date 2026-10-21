@@ -27,7 +27,7 @@ function Card({ m, sub, href, selected, onSelect, percent }: {
         // Na tela larga o clique mostra o material no painel ao lado; no celular abre a página
         if (onSelect && window.matchMedia(WIDE).matches) { e.preventDefault(); onSelect(); }
       }}>
-      <span className="art" style={{ background: artTone(m.id) }}><Cover title={m.title} type={m.type} url={m.coverUrl} seed={m.id} /></span>
+      <span className="art" style={{ ['--art' as string]: artTone(m.id) }}><Cover title={m.title} type={m.type} url={m.coverUrl} seed={m.id} /></span>
       <span className="info">
         <b>{m.title}</b>
         {sub ? <span>{sub}</span> : null}

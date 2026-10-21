@@ -34,12 +34,16 @@
   color-scheme: light;
 }
 
-/* Tema escuro só quando escolhido explicitamente (o padrão é claro, como no design) */
+/* Tema escuro: escolhido pelo botão do topo (o padrão é claro) */
 :root[data-theme='dark'] {
   --bg: #070B18; --surface: #121933; --surface-2: #0D1328; --ink: #E8ECF7; --ink-2: #C9CFE1;
   --muted: #8B93AE; --line: #222B48; --line-strong: #2E3858; --primary: #4D7DFF; --primary-2: #6A93FF;
-  --primary-soft: #1A2550; --chip: #1A2346; --navy: #0A1640; color-scheme: dark;
+  --primary-soft: #1A2550; --chip: #1A2346; --navy: #0A1640; --shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.5); color-scheme: dark;
 }
+:root[data-theme='dark'] .bcard .art { background: color-mix(in srgb, var(--art) 16%, var(--surface-2)); }
+:root[data-theme='dark'] .alert-error { background: #3A1520; color: #FFC9D2; }
+:root[data-theme='dark'] .alert-ok { background: #12301F; color: #B6EBCB; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -117,6 +121,8 @@ h1, h2, h3 { font-family: var(--sans); font-weight: 700; margin: 0; letter-spaci
 .search input::placeholder { color: var(--muted); }
 @media (min-width: 640px) { .search { order: 0; } }
 .topbar-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.theme-btn { width: 40px; height: 40px; border-radius: 12px; border: 0; background: var(--surface-2); color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.theme-btn:hover { color: var(--primary); }
 .user-chip { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 600; font-size: 13.5px; padding: 4px; border-radius: 999px; }
 .user-chip:hover { text-decoration: none; background: var(--surface-2); }
 .avatar {
@@ -210,7 +216,7 @@ h1, h2, h3 { font-family: var(--sans); font-weight: 700; margin: 0; letter-spaci
 @media (min-width: 1280px) {
   .bcard[aria-current='true'] { transform: translateY(-4px); box-shadow: var(--shadow-lg); outline: 2px solid var(--primary); outline-offset: 0; }
 }
-.bcard .art { aspect-ratio: 5 / 6; display: flex; align-items: center; justify-content: center; padding: 12% 20%; }
+.bcard .art { background: var(--art); aspect-ratio: 5 / 6; display: flex; align-items: center; justify-content: center; padding: 12% 20%; }
 .bcard .art .cover { width: 100%; }
 .bcard .art .cover.square { width: 110%; }
 .bcard .info { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 2px; }

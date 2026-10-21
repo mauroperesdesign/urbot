@@ -1,9 +1,15 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { getSession, isStaff } from '@/lib/data';
 import { supabaseConfigured } from '@/lib/supabase/server';
 import { Icon } from './Icon';
 import { SideNav, TabBar } from './Nav';
+import { ThemeToggle } from './ThemeToggle';
+
+export function currentTheme(): 'light' | 'dark' {
+  return cookies().get('tema')?.value === 'escuro' ? 'dark' : 'light';
+}
 
 async function session() {
   return supabaseConfigured() ? getSession() : { user: null, profile: null };
@@ -43,6 +49,7 @@ export async function Topbar() {
           <input id="q" name="q" type="search" placeholder="Buscar títulos, autores, Orixás, linhas…" />
         </form>
         <div className="topbar-end">
+          <ThemeToggle initial={currentTheme()} />
           {user ? (
             <Link href="/conta" className="user-chip" aria-label="Minha conta">
               <span className="avatar">{(name || '?').slice(0, 1).toUpperCase()}</span>

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { Poppins, Literata } from 'next/font/google';
 import './globals.css';
-import { Sidebar, Topbar } from '@/components/Header';
+import { Sidebar, Topbar, currentTheme } from '@/components/Header';
 import { PlayerProvider } from '@/components/player/PlayerProvider';
 import { MiniPlayer } from '@/components/player/MiniPlayer';
 
@@ -23,7 +23,7 @@ export const viewport: Viewport = { themeColor: '#1F5EFF', width: 'device-width'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${sans.variable} ${read.variable}`}>
+    <html lang="pt-BR" data-theme={currentTheme()} className={`${sans.variable} ${read.variable}`}>
       <body>
         <PlayerProvider>
           <a href="#conteudo" className="sr-only">Pular para o conteúdo</a>

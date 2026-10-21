@@ -20,7 +20,7 @@ export function BookCard({ href, title, sub, type, url, seed, percent }: {
 }) {
   return (
     <Link href={href} className="bcard">
-      <span className="art" style={{ background: artTone(seed) }}><Cover title={title} type={type} url={url} seed={seed} /></span>
+      <span className="art" style={{ ['--art' as string]: artTone(seed) }}><Cover title={title} type={type} url={url} seed={seed} /></span>
       <span className="info">
         <b>{title}</b>
         {sub ? <span>{sub}</span> : null}
