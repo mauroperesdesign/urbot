@@ -34,13 +34,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #070B18; --surface: #121933; --surface-2: #0D1328; --ink: #E8ECF7; --ink-2: #C9CFE1;
-    --muted: #8B93AE; --line: #222B48; --line-strong: #2E3858; --primary: #4D7DFF; --primary-2: #6A93FF;
-    --primary-soft: #1A2550; --chip: #1A2346; --navy: #0A1640; color-scheme: dark;
-  }
-}
+/* Tema escuro só quando escolhido explicitamente (o padrão é claro, como no design) */
 :root[data-theme='dark'] {
   --bg: #070B18; --surface: #121933; --surface-2: #0D1328; --ink: #E8ECF7; --ink-2: #C9CFE1;
   --muted: #8B93AE; --line: #222B48; --line-strong: #2E3858; --primary: #4D7DFF; --primary-2: #6A93FF;
