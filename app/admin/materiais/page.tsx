@@ -3,13 +3,14 @@ import { requireStaff } from '@/lib/data';
 import { TYPE_LABEL } from '@/lib/labels';
 import type { MaterialType } from '@/lib/types';
 import { bulkUpdate } from '../actions';
+import { BulkSubmit, SelectAll } from '@/components/admin/Confirm';
 
 export const dynamic = 'force-dynamic';
 const PAGE = 50;
 const STATUS_LABEL: Record<string, string> = { draft: 'Rascunho', published: 'Publicado', archived: 'Arquivado' };
 
-export default async function AdminMaterials({ searchParams }: { searchParams: { q?: string; status?: string; tipo?: string; pagina?: string; pendente?: string } }) {
-  const { supabase } = await requireStaff();
+export default async function AdminMaterials({ searchParams }: { searchParams: { q?: string; status?: string; tipo?: string; pagina?: string; pendente?: string; ok?: string; erro?: string } }) {
+  const { supabase, profile } = await requireStaff();
   const page = Math.max(1, Number(searchParams.pagina) || 1);
   let q = supabase.from('materials')
     .select('id, slug, title, type, status, visibility, featured, cover_path, updated_at, material_authors(authors(name)), files(id, path, role), material_internal(review_notes)', { count: 'exact' })
@@ -53,6 +54,8 @@ export default async function AdminMaterials({ searchParams }: { searchParams: {
         <button className="btn" type="submit">Filtrar</button>
       </form>
       {error ? <p className="alert alert-error">{error.message}</p> : null}
+      {searchParams.ok ? <p className="alert alert-ok">{searchParams.ok}</p> : null}
+      {searchParams.erro ? <p className="alert alert-error">{searchParams.erro}</p> : null}
 
       <form action={bulkUpdate} className="card">
         <div className="row" style={{ padding: 12, borderBottom: '1px solid var(--line)' }}>
@@ -64,12 +67,13 @@ export default async function AdminMaterials({ searchParams }: { searchParams: {
             <option value="archive">Arquivar</option>
             <option value="restricted">Tornar restrito</option>
             <option value="public">Tornar público</option>
+            {profile?.role === 'admin' ? <option value="delete">Excluir definitivamente</option> : null}
           </select>
-          <button className="btn" type="submit">Aplicar</button>
+          <BulkSubmit />
         </div>
         <div className="table-wrap">
           <table className="data">
-            <thead><tr><th scope="col"><span className="sr-only">Selecionar</span></th><th scope="col">Título</th><th scope="col">Autor</th><th scope="col">Tipo</th><th scope="col">Status</th><th scope="col">Acesso</th><th scope="col">Pendências</th></tr></thead>
+            <thead><tr><th scope="col"><SelectAll /></th><th scope="col">Título</th><th scope="col">Autor</th><th scope="col">Tipo</th><th scope="col">Status</th><th scope="col">Acesso</th><th scope="col">Pendências</th></tr></thead>
             <tbody>
               {filtered.map((r) => {
                 const issues = [

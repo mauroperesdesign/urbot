@@ -21,6 +21,7 @@ export default async function Home() {
   const [materialsRes, catsRes] = await Promise.all([
     supabase.from('materials')
       .select(`${CARD_COLUMNS}, description, page_count, duration_seconds, language, featured, featured_rank, material_categories(category_id)`)
+      .eq('status', 'published')
       .order('featured', { ascending: false })
       .order('featured_rank', { ascending: true, nullsFirst: false })
       .order('published_at', { ascending: false, nullsFirst: false })

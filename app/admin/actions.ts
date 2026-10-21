@@ -113,26 +113,54 @@ export async function saveMaterial(_: SaveState, form: FormData): Promise<SaveSt
   return { ok: 'Alterações salvas.' };
 }
 
+const BULK_DONE: Record<string, string> = {
+  publish: 'publicados', draft: 'voltaram para rascunho', archive: 'arquivados (não aparecem mais no site)',
+  restricted: 'agora restritos', public: 'agora públicos',
+};
+
 export async function bulkUpdate(form: FormData) {
   const { supabase } = await requireStaff();
   const ids = form.getAll('ids').map(String).slice(0, 500);
   const action = String(form.get('action'));
-  if (!ids.length) return;
+  if (!ids.length) redirect('/admin/materiais?erro=' + encodeURIComponent('Marque pelo menos um material na lista.'));
+  if (action === 'delete') return deleteMaterials(ids);
   const patch: Record<string, string> | null =
     action === 'publish' ? { status: 'published' } :
     action === 'draft' ? { status: 'draft' } :
     action === 'archive' ? { status: 'archived' } :
     action === 'restricted' ? { visibility: 'restricted' } :
     action === 'public' ? { visibility: 'public' } : null;
-  if (!patch) return;
-  if (action === 'publish') {
-    // Só publica os que têm autorização registrada (a restrição do banco também garante isso)
-    await supabase.from('materials').update(patch).in('id', ids).eq('publication_authorized', true);
-  } else {
-    await supabase.from('materials').update(patch).in('id', ids);
+  if (!patch) redirect('/admin/materiais?erro=' + encodeURIComponent('Escolha uma ação.'));
+  // Só publica os que têm autorização registrada (a restrição do banco também garante isso)
+  const query = supabase.from('materials').update(patch).in('id', ids);
+  const { data, error } = await (action === 'publish' ? query.eq('publication_authorized', true) : query).select('id');
+  if (error) redirect('/admin/materiais?erro=' + encodeURIComponent(error.message));
+  revalidatePath('/', 'layout');
+  redirect('/admin/materiais?ok=' + encodeURIComponent(`${data?.length ?? 0} material(is) ${BULK_DONE[action]}.`));
+}
+
+// Exclusão definitiva: apaga os arquivos do armazenamento e o registro (progresso, favoritos etc. saem junto)
+async function deleteMaterials(ids: string[]) {
+  const { supabase, profile } = await requireStaff();
+  if (profile?.role !== 'admin') redirect('/admin/materiais?erro=' + encodeURIComponent('Só administradores podem excluir materiais. Editores podem arquivar.'));
+  const { data: mats } = await supabase.from('materials').select('id, cover_path, files(bucket, path)').in('id', ids);
+  const byBucket = new Map<string, string[]>();
+  const add = (bucket: string, path: string | null) => { if (path) byBucket.set(bucket, [...(byBucket.get(bucket) ?? []), path]); };
+  for (const m of (mats ?? []) as { cover_path: string | null; files: { bucket: string; path: string | null }[] }[]) {
+    add('covers', m.cover_path);
+    m.files.forEach((f) => add(f.bucket, f.path));
   }
-  revalidatePath('/admin/materiais');
-  revalidatePath('/');
+  for (const [bucket, paths] of Array.from(byBucket)) {
+    for (let i = 0; i < paths.length; i += 100) await supabase.storage.from(bucket).remove(paths.slice(i, i + 100));
+  }
+  const { data, error } = await supabase.from('materials').delete().in('id', ids).select('id');
+  if (error) redirect('/admin/materiais?erro=' + encodeURIComponent(error.message));
+  revalidatePath('/', 'layout');
+  redirect('/admin/materiais?ok=' + encodeURIComponent(`${data?.length ?? 0} material(is) excluído(s) definitivamente.`));
+}
+
+export async function deleteMaterial(form: FormData) {
+  return deleteMaterials([String(form.get('id'))]);
 }
 
 export async function deleteFile(form: FormData) {

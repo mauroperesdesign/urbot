@@ -4,11 +4,13 @@ import { requireStaff, withCoverUrls } from '@/lib/data';
 import { MaterialForm } from './MaterialForm';
 import { FileManager } from './FileManager';
 import type { Category, FileRow, Material } from '@/lib/types';
+import { deleteMaterial } from '../../actions';
+import { DeleteButton } from '@/components/admin/Confirm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function EditMaterial({ params, searchParams }: { params: { id: string }; searchParams: { criado?: string } }) {
-  const { supabase } = await requireStaff();
+  const { supabase, profile } = await requireStaff();
   const isNew = params.id === 'novo';
   const { data: catData } = await supabase.from('categories').select('id, parent_id, name, slug, description, position').order('position');
   const categories = (catData ?? []) as Category[];
@@ -49,6 +51,14 @@ export default async function EditMaterial({ params, searchParams }: { params: {
       {searchParams.criado ? <p className="alert alert-ok">Material criado como rascunho. Agora envie a capa e os arquivos.</p> : null}
       {!isNew ? <FileManager materialId={material!.id} materialType={material!.type} files={files} coverUrl={coverUrl} /> : null}
       <MaterialForm material={material} internal={internal} categories={categories} selected={selected} authors={authors} />
+      {!isNew && profile?.role === 'admin' ? (
+        <form action={deleteMaterial} className="card stack" style={{ padding: 18, borderColor: 'color-mix(in srgb, var(--danger) 35%, var(--line))' }}>
+          <input type="hidden" name="id" value={material!.id} />
+          <b>Excluir material</b>
+          <span className="muted" style={{ fontSize: 13 }}>Apaga o material, a capa e todos os arquivos enviados, além do progresso e dos favoritos dos membros. Para só tirar do site sem apagar, mude o status para “Arquivado”.</span>
+          <div><DeleteButton title={material!.title} /></div>
+        </form>
+      ) : null}
     </div>
   );
 }

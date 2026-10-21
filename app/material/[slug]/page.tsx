@@ -57,7 +57,7 @@ export default async function MaterialPage({ params }: { params: { slug: string 
   const firstCat = categories[0];
   const { data: relRows } = firstCat
     ? await supabase.from('materials').select(`${CARD_COLUMNS}, material_categories!inner(category_id)`)
-        .eq('material_categories.category_id', firstCat.id).neq('id', m.id).limit(5)
+        .eq('material_categories.category_id', firstCat.id).eq('status', 'published').neq('id', m.id).limit(5)
     : { data: [] };
   const related = await withCoverUrls((relRows ?? []).map((r) => toCard(r as never)));
 
