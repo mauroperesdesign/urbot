@@ -54,7 +54,10 @@ set_env "$ENVF" ADDITIONAL_REDIRECT_URLS "https://$DOMAIN/**"
 set_env "$ENVF" ENABLE_EMAIL_SIGNUP true
 # Sem servidor de e-mail configurado, a conta é confirmada automaticamente;
 # o acesso ao acervo continua dependendo da aprovação do admin.
-[ -n "$(get_env "$ENVF" SMTP_PASS | sed 's/^your-.*//')" ] || set_env "$ENVF" ENABLE_EMAIL_AUTOCONFIRM true
+# (o .env oficial vem com um servidor de e-mail falso, "supabase-mail", que não existe em produção)
+case "$(get_env "$ENVF" SMTP_HOST)|$(get_env "$ENVF" SMTP_PASS)" in
+  supabase-mail\|*|*\|fake_*|*\|your-*|*\|) set_env "$ENVF" ENABLE_EMAIL_AUTOCONFIRM true ;;
+esac
 set_env "$ENVF" DASHBOARD_USERNAME admin
 set_env "$ENVF" STUDIO_DEFAULT_ORGANIZATION "En Tenda"
 set_env "$ENVF" STUDIO_DEFAULT_PROJECT "Biblioteca Umbandista"

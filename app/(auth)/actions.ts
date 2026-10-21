@@ -31,7 +31,7 @@ export async function signUp(_: FormState, form: FormData): Promise<FormState> {
   const password = String(form.get('password') ?? '');
   if (password.length < 8) return { error: 'A senha precisa ter pelo menos 8 caracteres.' };
   const supabase = createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: String(form.get('email') ?? '').trim(),
     password,
     options: {
@@ -40,6 +40,8 @@ export async function signUp(_: FormState, form: FormData): Promise<FormState> {
     },
   });
   if (error) return { error: error.message.includes('registered') ? 'Este e-mail já tem cadastro.' : 'Não foi possível criar a conta agora.' };
+  // Sem servidor de e-mail a conta já nasce confirmada e conectada
+  if (data.session) return { ok: 'Conta criada e você já está conectado. Assim que a administração aprovar, o acervo restrito fica disponível.' };
   return { ok: 'Conta criada. Confirme pelo link enviado ao seu e-mail. Depois, a administração aprova seu acesso ao acervo restrito.' };
 }
 

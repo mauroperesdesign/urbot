@@ -99,7 +99,7 @@ rclone config        # n → nome: gdrive → tipo: drive → siga as instruçõ
 ```
 Depois disso, o backup diário envia uma cópia para a pasta `BibliotecaBackups` do seu Drive automaticamente.
 
-**E-mails (recuperação de senha)**: sem servidor de e-mail, as contas são confirmadas automaticamente (o acesso ao acervo continua dependendo da sua aprovação), mas o “esqueci minha senha” não envia e-mail. Para ativar, crie uma conta gratuita de envio (ex.: Brevo) e preencha `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_ADMIN_EMAIL` em `/opt/biblioteca/supabase/.env`; depois rode `cd /opt/biblioteca/supabase && docker compose up -d`.
+**E-mails (recuperação de senha)**: sem servidor de e-mail, as contas são confirmadas automaticamente (o acesso ao acervo continua dependendo da sua aprovação), mas o “esqueci minha senha” não envia e-mail. Para ativar, crie uma conta gratuita de envio (ex.: Brevo) e preencha `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_ADMIN_EMAIL` em `/opt/biblioteca/supabase/.env`, mude `ENABLE_EMAIL_AUTOCONFIRM` para `false` (para exigir a confirmação por e-mail) e rode `cd /opt/biblioteca/supabase && docker compose up -d`.
 
 **Ver se está tudo no ar**:
 ```
