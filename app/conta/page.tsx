@@ -18,7 +18,7 @@ export default async function Account() {
   const roleLabel = profile?.role === 'admin' ? 'Administrador' : profile?.role === 'editor' ? 'Editor' : profile?.approved ? 'Membro aprovado' : 'Aguardando aprovação';
   return (
     <div className="container" style={{ maxWidth: 560, marginTop: 24 }}>
-      <h1 style={{ fontSize: 48 }}>Conta</h1>
+      <h1 className="page-title">Conta</h1>
       <div className="card stack" style={{ padding: 24, marginTop: 16 }}>
         <p style={{ margin: 0 }}><b>{user.email}</b><br /><span className="muted">{roleLabel}</span></p>
         <form action={saveProfile} className="stack">

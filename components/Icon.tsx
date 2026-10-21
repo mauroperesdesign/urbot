@@ -17,6 +17,14 @@ const PATHS: Record<string, string> = {
   expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
   list: 'M4 6h16M4 12h16M4 18h10',
   lock: 'M5 11h14v10H5zM8 11V8a4 4 0 0 1 8 0v3',
+  grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  settings: 'M14 6a2 2 0 1 0 4 0 2 2 0 0 0-4 0M6 12a2 2 0 1 0 4 0 2 2 0 0 0-4 0M13 18a2 2 0 1 0 4 0 2 2 0 0 0-4 0M4 6h10M18 6h2M4 12h2M10 12h10M4 18h9M17 18h3',
+  help: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01',
+  logout: 'M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10',
+  login: 'M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l4-4-4-4M14 12H4',
+  shield: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z',
+  chevronDown: 'M6 9l6 6 6-6',
+  filter: 'M4 6h16M7 12h10M10 18h4',
   timer: 'M12 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 9v4l2.5 2M9 2h6',
 };
 

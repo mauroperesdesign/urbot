@@ -65,7 +65,7 @@ export default async function MaterialPage({ params }: { params: { slug: string 
   const pct = (progress as { percent: number | null } | null)?.percent;
 
   return (
-    <div className="container" style={{ marginTop: 24 }}>
+    <div className="container panel">
       <nav aria-label="Trilha de navegação" className="row muted" style={{ fontSize: 14 }}>
         <Link href="/acervo">Acervo</Link>
         {firstCat ? <><span aria-hidden="true">/</span><Link href={`/acervo?categoria=${firstCat.slug}`}>{firstCat.name}</Link></> : null}
@@ -91,7 +91,7 @@ export default async function MaterialPage({ params }: { params: { slug: string 
             {m.status !== 'published' ? <span className="badge badge-sand">{m.status === 'draft' ? 'Rascunho' : 'Arquivado'}</span> : null}
             {m.tradition ? <span className="badge badge-sand">Perspectiva: {m.tradition}</span> : null}
           </div>
-          <h1 style={{ fontSize: 'clamp(38px, 6vw, 68px)', lineHeight: 0.98 }}>{m.title}</h1>
+          <h1 className="page-title-xl">{m.title}</h1>
           {m.subtitle ? <p className="serif" style={{ fontSize: 22, margin: 0, fontStyle: 'italic' }}>{m.subtitle}</p> : null}
           <p style={{ margin: 0, fontSize: 16 }} className="muted">
             {authors.length ? <>por {authors.map((a, i) => <span key={a.authors!.slug}>{i ? ', ' : ''}<b style={{ color: 'var(--ink)' }}>{a.authors!.name}</b></span>)}</> : 'Autor a confirmar'}

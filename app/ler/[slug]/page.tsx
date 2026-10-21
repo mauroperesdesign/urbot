@@ -18,7 +18,7 @@ export default async function ReadPage({ params }: { params: { slug: string } })
     return (
       <div className="container" style={{ maxWidth: 640, marginTop: 40 }}>
         <div className="card stack" style={{ padding: 24 }}>
-          <h1 style={{ fontSize: 32 }}>Arquivo indisponível</h1>
+          <h1 className="page-title">Arquivo indisponível</h1>
           <p>O arquivo de “{m.title}” ainda não foi enviado para a biblioteca.</p>
           <Link className="btn" href={`/material/${m.slug}`}>Voltar ao material</Link>
         </div>
@@ -31,7 +31,7 @@ export default async function ReadPage({ params }: { params: { slug: string } })
     return (
       <div className="container" style={{ maxWidth: 640, marginTop: 40 }}>
         <div className="card stack" style={{ padding: 24 }}>
-          <h1 style={{ fontSize: 32 }}>Formato ainda não suportado no leitor</h1>
+          <h1 className="page-title">Formato ainda não suportado no leitor</h1>
           <p>Este arquivo ({file.mime_type ?? 'formato desconhecido'}) não pode ser exibido diretamente no navegador por enquanto.
             {m.allow_download ? ' A administração permite o download.' : ' Fale com a administração para uma alternativa.'}</p>
           {m.allow_download ? <a className="btn btn-primary" href={`/api/files/${file.id}?open=1`}>Abrir arquivo</a> : null}

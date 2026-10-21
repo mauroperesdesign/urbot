@@ -9,7 +9,7 @@ export default async function Users({ searchParams }: { searchParams: { erro?: s
   const isAdmin = profile?.role === 'admin';
   return (
     <div className="stack" style={{ ['--gap' as string]: '16px' }}>
-      <h1 style={{ fontSize: 44 }}>Usuários e permissões</h1>
+      <h1 className="page-title">Usuários e permissões</h1>
       <p className="muted" style={{ margin: 0 }}>Membros aprovados acessam os materiais restritos. Só administradores alteram papéis e aprovações — a regra é verificada no banco de dados.</p>
       {searchParams.erro ? <p className="alert alert-error">{searchParams.erro}</p> : null}
       <div className="card table-wrap">

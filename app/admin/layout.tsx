@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { requireStaff } from '@/lib/data';
+import { AdminTabs } from '@/components/Nav';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Administração', robots: { index: false, follow: false } };
@@ -17,15 +18,13 @@ const NAV = [
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requireStaff();
   return (
-    <div className="container" style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 20, alignItems: 'flex-start' }}>
-      <aside style={{ flex: '1 1 220px', maxWidth: '100%', background: '#10201B', color: '#B9C4BF', borderRadius: 22, padding: 14 }}>
-        <span className="eyebrow" style={{ color: '#E7C47A', display: 'block', padding: '6px 10px 12px' }}>Administração · {profile?.role === 'admin' ? 'admin' : 'editor'}</span>
-        <nav aria-label="Administração" className="stack" style={{ ['--gap' as string]: '2px' }}>
-          {NAV.map((n) => <Link key={n.href} href={n.href} style={{ color: '#F6F3EC', padding: '10px 12px', borderRadius: 10, fontWeight: 600 }}>{n.label}</Link>)}
-          <Link href="/" style={{ color: '#B9C4BF', padding: '10px 12px', fontSize: 13 }}>← Voltar ao site</Link>
-        </nav>
-      </aside>
-      <div style={{ flex: '999 1 640px', minWidth: 0 }}>{children}</div>
+    <div className="container stack" style={{ ['--gap' as string]: '18px' }}>
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <span className="eyebrow">Administração · {profile?.role === 'admin' ? 'admin' : 'editor'}</span>
+        <Link href="/" className="pill-link">Voltar ao site</Link>
+      </div>
+      <AdminTabs items={NAV} />
+      <div className="panel" style={{ minWidth: 0 }}>{children}</div>
     </div>
   );
 }

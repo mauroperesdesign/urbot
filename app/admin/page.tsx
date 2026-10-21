@@ -32,7 +32,7 @@ export default async function AdminHome() {
 
   return (
     <div className="stack" style={{ ['--gap' as string]: '20px' }}>
-      <h1 style={{ fontSize: 44 }}>Visão geral</h1>
+      <h1 className="page-title">Visão geral</h1>
       <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
         <Stat label="Materiais" value={total} hint={`${published} publicados · ${drafts} rascunhos`} />
         <Stat label="Arquivos aguardando envio" value={pendingFiles} hint="Registros sem arquivo no armazenamento" tone="#FBF3E1" />

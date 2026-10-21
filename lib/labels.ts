@@ -30,13 +30,21 @@ export function primaryAction(type: MaterialType) {
 
 // Paleta das capas geradas quando o material não tem imagem
 const COVER_TONES = [
-  ['#0E3B2E', '#185443'], ['#0F4C5C', '#1A6375'], ['#9A4A2B', '#B4603C'],
-  ['#2B3A67', '#3A4B80'], ['#5C5A2A', '#73703A'], ['#6A3355', '#80426A'],
+  ['#1F3A8A', '#2F55C9'], ['#081A4F', '#1F2F6B'], ['#8A3B1C', '#B0532A'],
+  ['#14532D', '#1E7A44'], ['#4C2A86', '#6A3FB0'], ['#7A1C3A', '#A82A50'],
 ];
-export function coverTone(seed: string) {
+// Fundo claro atrás da capa nos cards
+const ART_TONES = ['#E6ECF8', '#F4EADF', '#E3F0EA', '#F3E4E9', '#ECE8F7', '#FBF1D6', '#E2EEF4'];
+function hash(seed: string) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return COVER_TONES[h % COVER_TONES.length];
+  return h;
+}
+export function coverTone(seed: string) {
+  return COVER_TONES[hash(seed) % COVER_TONES.length];
+}
+export function artTone(seed: string) {
+  return ART_TONES[hash(seed) % ART_TONES.length];
 }
 
 export function formatDuration(seconds: number | null | undefined) {

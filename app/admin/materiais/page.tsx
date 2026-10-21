@@ -36,7 +36,7 @@ export default async function AdminMaterials({ searchParams }: { searchParams: {
   return (
     <div className="stack" style={{ ['--gap' as string]: '16px' }}>
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ fontSize: 44 }}>Materiais</h1>
+        <h1 className="page-title">Materiais</h1>
         <div className="row"><Link className="btn" href="/admin/exportar">Exportar CSV</Link><Link className="btn btn-primary" href="/admin/materiais/novo">+ Novo material</Link></div>
       </div>
       <form className="row" action="/admin/materiais">

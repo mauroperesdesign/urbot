@@ -42,7 +42,7 @@ export default async function Categories() {
 
   return (
     <div className="stack" style={{ ['--gap' as string]: '16px' }}>
-      <h1 style={{ fontSize: 44 }}>Categorias</h1>
+      <h1 className="page-title">Categorias</h1>
       <form action={saveCategory} className="card row" style={{ padding: 16 }}>
         <label className="field" style={{ flex: '1 1 240px' }}>Nova categoria<input name="name" required /></label>
         <label className="field">Dentro de

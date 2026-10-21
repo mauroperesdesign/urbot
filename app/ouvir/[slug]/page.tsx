@@ -19,7 +19,7 @@ export default async function ListenPage({ params, searchParams }: { params: { s
     return (
       <div className="container" style={{ maxWidth: 640, marginTop: 40 }}>
         <div className="card stack" style={{ padding: 24 }}>
-          <h1 style={{ fontSize: 32 }}>Áudio indisponível</h1>
+          <h1 className="page-title">Áudio indisponível</h1>
           <p>As faixas de “{m.title}” ainda não foram enviadas para a biblioteca.</p>
           <Link className="btn" href={`/material/${m.slug}`}>Voltar ao material</Link>
         </div>

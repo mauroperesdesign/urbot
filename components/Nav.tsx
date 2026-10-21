@@ -1,32 +1,61 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Icon } from './Icon';
+import { signOut } from '@/app/(auth)/actions';
 
-const LINKS = [
-  { href: '/', label: 'Início', icon: 'home' },
-  { href: '/acervo', label: 'Acervo', icon: 'search' },
+type NavItem = { href: string; label: string; icon: string };
+
+const MAIN: NavItem[] = [
+  { href: '/', label: 'Descobrir', icon: 'home' },
+  { href: '/acervo', label: 'Acervo', icon: 'grid' },
+  { href: '/minha-biblioteca', label: 'Minha biblioteca', icon: 'library' },
   { href: '/acervo?tipo=audiobook', label: 'Audiobooks', icon: 'headphones' },
-  { href: '/minha-biblioteca', label: 'Biblioteca', icon: 'library' },
+  { href: '/minha-biblioteca#favoritos', label: 'Favoritos', icon: 'heart' },
 ];
 
 function useActive() {
   const path = usePathname();
+  const params = useSearchParams();
   return (href: string) => {
-    const base = href.split('?')[0];
-    return base === '/' ? path === '/' : path.startsWith(base);
+    if (href.includes('#')) return false;
+    const [base, query] = href.split('?');
+    if (base === '/') return path === '/';
+    if (!path.startsWith(base)) return false;
+    // "Acervo" e "Audiobooks" dividem a mesma página; o filtro de tipo decide qual fica ativo
+    const tipo = new URLSearchParams(query ?? '').get('tipo');
+    return (params.get('tipo') ?? null) === tipo;
   };
 }
 
-export function NavLinks() {
+export function SideNav({ staff, signedIn }: { staff: boolean; signedIn: boolean }) {
   const isActive = useActive();
+  const inAdmin = usePathname().startsWith('/admin');
+  const extra: NavItem[] = [
+    ...(staff ? [{ href: '/admin', label: 'Administração', icon: 'shield' }] : []),
+    ...(signedIn ? [{ href: '/conta', label: 'Conta', icon: 'settings' }] : []),
+    { href: '/contato', label: 'Ajuda e contato', icon: 'help' },
+  ];
+  const item = (l: NavItem) => (
+    <Link key={l.href} href={l.href} aria-current={isActive(l.href) || (l.href === '/admin' && inAdmin) ? 'page' : undefined}>
+      <span className="ico"><Icon name={l.icon} size={18} /></span>{l.label}
+    </Link>
+  );
   return (
-    <nav aria-label="Principal" className="nav-links">
-      {LINKS.filter((l) => l.label !== 'Audiobooks').map((l) => (
-        <Link key={l.href} href={l.href} aria-current={isActive(l.href) ? 'page' : undefined}>{l.label}</Link>
-      ))}
-    </nav>
+    <>
+      <nav aria-label="Principal" className="side-nav">{MAIN.map(item)}</nav>
+      <nav aria-label="Conta" className="side-nav">
+        {extra.map(item)}
+        {signedIn ? (
+          <form action={signOut}>
+            <button type="submit"><span className="ico"><Icon name="logout" size={18} /></span>Sair</button>
+          </form>
+        ) : (
+          <Link href="/entrar"><span className="ico"><Icon name="login" size={18} /></span>Entrar</Link>
+        )}
+      </nav>
+    </>
   );
 }
 
@@ -36,11 +65,22 @@ export function TabBar() {
   if (path.startsWith('/ler') || path.startsWith('/admin')) return null;
   return (
     <nav aria-label="Navegação principal" className="tabbar">
-      {[LINKS[0], LINKS[1], LINKS[3], { href: '/conta', label: 'Conta', icon: 'user' }].map((l) => (
+      {[MAIN[0], MAIN[1], MAIN[2], { href: '/conta', label: 'Conta', icon: 'user' }].map((l) => (
         <Link key={l.href} href={l.href} aria-current={isActive(l.href) ? 'page' : undefined}>
-          <Icon name={l.icon} />{l.label}
+          <Icon name={l.icon} />{l.label === 'Minha biblioteca' ? 'Biblioteca' : l.label === 'Descobrir' ? 'Início' : l.label}
         </Link>
       ))}
+    </nav>
+  );
+}
+
+export function AdminTabs({ items }: { items: { href: string; label: string }[] }) {
+  const path = usePathname();
+  const current = items.filter((i) => path === i.href || path.startsWith(`${i.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  return (
+    <nav aria-label="Administração" className="chips">
+      {items.map((n) => <Link key={n.href} href={n.href} className="chip" aria-current={n.href === current ? 'true' : undefined}>{n.label}</Link>)}
     </nav>
   );
 }

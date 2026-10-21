@@ -1,39 +1,60 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { getSession, isStaff } from '@/lib/data';
 import { supabaseConfigured } from '@/lib/supabase/server';
 import { Icon } from './Icon';
-import { NavLinks, TabBar } from './Nav';
+import { SideNav, TabBar } from './Nav';
 
-export async function Header() {
-  const { user, profile } = supabaseConfigured()
-    ? await getSession()
-    : { user: null, profile: null };
-  const initial = (profile?.display_name || user?.email || '?').slice(0, 1).toUpperCase();
+async function session() {
+  return supabaseConfigured() ? getSession() : { user: null, profile: null };
+}
+
+function Brand() {
+  return (
+    <Link href="/" className="brand" aria-label="Biblioteca Umbandista — início">
+      <img src="/logo.webp" alt="" />
+      <span><b>Biblioteca</b><small>Umbandista</small></span>
+    </Link>
+  );
+}
+
+export async function Sidebar() {
+  const { user, profile } = await session();
+  return (
+    <aside className="sidebar">
+      <Brand />
+      <Suspense fallback={null}>
+        <SideNav staff={isStaff(profile)} signedIn={!!user} />
+      </Suspense>
+    </aside>
+  );
+}
+
+export async function Topbar() {
+  const { user, profile } = await session();
+  const name = profile?.display_name || user?.email?.split('@')[0] || '';
   return (
     <>
-      <header className="site-header">
-        <div className="container bar">
-          <Link href="/" className="brand" aria-label="Biblioteca Umbandista — início">
-            <img src="/logo.webp" alt="" />
-            <span><b>Biblioteca</b><small>Umbandista</small></span>
-          </Link>
-          <NavLinks />
-          <form role="search" action="/acervo" className="search">
-            <Icon name="search" size={18} />
-            <label htmlFor="q" className="sr-only">Buscar no acervo</label>
-            <input id="q" name="q" type="search" placeholder="Títulos, autores, Orixás, linhas…" />
-          </form>
-          <div className="row" style={{ marginLeft: 'auto' }}>
-            {isStaff(profile) ? <Link className="btn" href="/admin">Admin</Link> : null}
-            {user ? (
-              <Link href="/minha-biblioteca" className="btn btn-primary icon-btn" aria-label="Minha conta">{initial}</Link>
-            ) : (
-              <Link href="/entrar" className="btn">Entrar</Link>
-            )}
-          </div>
+      <header className="topbar">
+        <Brand />
+        <form role="search" action="/acervo" className="search">
+          <Icon name="search" size={18} />
+          <label htmlFor="q" className="sr-only">Buscar no acervo</label>
+          <input id="q" name="q" type="search" placeholder="Buscar títulos, autores, Orixás, linhas…" />
+        </form>
+        <div className="topbar-end">
+          {user ? (
+            <Link href="/conta" className="user-chip" aria-label="Minha conta">
+              <span className="avatar">{(name || '?').slice(0, 1).toUpperCase()}</span>
+              <span className="name">{name}</span>
+              <span className="name muted"><Icon name="chevronDown" size={16} /></span>
+            </Link>
+          ) : (
+            <Link href="/entrar" className="btn btn-primary">Entrar</Link>
+          )}
         </div>
       </header>
-      <TabBar />
+      <Suspense fallback={null}><TabBar /></Suspense>
     </>
   );
 }

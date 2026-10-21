@@ -42,7 +42,7 @@ export default async function EditMaterial({ params, searchParams }: { params: {
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div className="stack" style={{ ['--gap' as string]: '2px' }}>
           <Link href="/admin/materiais" className="muted" style={{ fontSize: 13 }}>← Materiais</Link>
-          <h1 style={{ fontSize: 40 }}>{isNew ? 'Novo material' : material!.title}</h1>
+          <h1 className="page-title">{isNew ? 'Novo material' : material!.title}</h1>
         </div>
         {!isNew ? <Link className="btn" href={`/material/${material!.slug}`}>Pré-visualizar</Link> : null}
       </div>

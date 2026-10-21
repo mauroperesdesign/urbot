@@ -56,9 +56,9 @@ export default async function Acervo({ searchParams }: { searchParams: Search })
   const pages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="container" style={{ marginTop: 24 }}>
+    <div className="container panel">
       <div className="stack" style={{ ['--gap' as string]: '6px' }}>
-        <h1 style={{ fontSize: 'clamp(38px, 6vw, 56px)' }}>{current ? current.name : 'Acervo'}</h1>
+        <h1 className="page-title-xl">{current ? current.name : 'Acervo'}</h1>
         <span className="muted">
           {searchParams.q ? <>Resultados para “{searchParams.q}” · </> : null}
           {total} {total === 1 ? 'material' : 'materiais'}

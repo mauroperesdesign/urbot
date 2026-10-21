@@ -85,7 +85,7 @@ No final ele mostra **o seu login e senha de administrador** e a senha do painel
 ```
 bash /opt/biblioteca/app/deploy/atualizar.sh
 ```
-(Se o repositório pedir senha, use o mesmo tipo de token do passo 3.)
+(Ele pede o token do GitHub — o mesmo tipo do passo 3. Cole com o botão direito; não aparece na tela.)
 
 **Reimportar o acervo** (idempotente):
 ```

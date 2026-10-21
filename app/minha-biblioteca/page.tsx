@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { requireUser, withCoverUrls, CARD_COLUMNS, toCard } from '@/lib/data';
-import { MaterialCard, Cover } from '@/components/Cover';
+import { MaterialCard, BookCard } from '@/components/Cover';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Minha biblioteca', robots: { index: false } };
@@ -22,41 +22,37 @@ export default async function MyLibrary({ searchParams }: { searchParams: { senh
   const favRows = await withCoverUrls((favs.data ?? []).map((f) => toCard(f.materials as never)));
 
   return (
-    <div className="container" style={{ marginTop: 24 }}>
+    <div className="container">
       {searchParams.senha === 'ok' ? <p className="alert alert-ok">Senha atualizada.</p> : null}
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ fontSize: 'clamp(38px, 6vw, 56px)' }}>Minha biblioteca</h1>
+        <h1 className="page-title-xl">Minha biblioteca</h1>
         <Link className="btn" href="/conta">Conta e preferências</Link>
       </div>
       {profile && !profile.approved && profile.role === 'member' ? (
         <p className="alert" style={{ marginTop: 12 }}>Seu acesso ao acervo restrito está aguardando aprovação da administração.</p>
       ) : null}
 
-      <section className="section">
-        <div className="section-head"><h2>Continuar lendo</h2></div>
+      <section className="panel" style={{ marginTop: 20 }}>
+        <div className="panel-head"><h2>Continuar lendo</h2></div>
         {readRows.length ? (
           <div className="shelf">{readRows.map((m) => (
-            <Link key={m.id} href={`/ler/${m.slug}`} className="mcard">
-              <Cover title={m.title} type={m.type} url={m.coverUrl} seed={m.id} />
-              <b>{m.title}</b><span>Página {m.location}{m.percent != null ? ` · ${Math.round(m.percent)}%` : ''}</span>
-            </Link>
+            <BookCard key={m.id} href={`/ler/${m.slug}`} title={m.title} type={m.type} url={m.coverUrl} seed={m.id}
+              sub={`Página ${m.location}${m.percent != null ? ` · ${Math.round(m.percent)}%` : ''}`} percent={m.percent} />
           ))}</div>
         ) : <div className="empty"><span className="muted">Os livros e apostilas que você abrir aparecem aqui, com a página onde parou.</span></div>}
       </section>
 
-      <section className="section">
-        <div className="section-head"><h2>Continuar ouvindo</h2></div>
+      <section className="panel">
+        <div className="panel-head"><h2>Continuar ouvindo</h2></div>
         {listenRows.length ? (
           <div className="shelf">{listenRows.map((m) => (
-            <Link key={m.id} href={`/ouvir/${m.slug}`} className="mcard">
-              <Cover title={m.title} type={m.type} url={m.coverUrl} seed={m.id} /><b>{m.title}</b>
-            </Link>
+            <BookCard key={m.id} href={`/ouvir/${m.slug}`} title={m.title} type={m.type} url={m.coverUrl} seed={m.id} sub="Continuar ouvindo" />
           ))}</div>
         ) : <div className="empty"><span className="muted">Seu histórico de audição aparece aqui.</span></div>}
       </section>
 
-      <section className="section">
-        <div className="section-head"><h2>Favoritos</h2></div>
+      <section className="panel" id="favoritos">
+        <div className="panel-head"><h2>Favoritos</h2></div>
         {favRows.length ? <div className="grid-cards">{favRows.map((m) => <MaterialCard key={m.id} m={m} />)}</div>
           : <div className="empty"><span className="muted">Toque em “Adicionar aos favoritos” na página de um material.</span></div>}
       </section>
