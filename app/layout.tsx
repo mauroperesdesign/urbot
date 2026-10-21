@@ -16,7 +16,8 @@ export const metadata: Metadata = {
   title: { default: 'Biblioteca Umbandista', template: '%s · Biblioteca Umbandista' },
   description: 'Acervo de estudo do Grupo de Estudos da Umbanda En Tenda: livros, apostilas e audiobooks organizados por tema.',
   openGraph: { type: 'website', siteName: 'Biblioteca Umbandista', locale: 'pt_BR', images: ['/logo.webp'] },
-  icons: { icon: '/logo.webp' },
+  icons: { icon: '/logo.webp', apple: '/apple-touch-icon.png' },
+  appleWebApp: { capable: true, title: 'Biblioteca', statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = { themeColor: '#1F5EFF', width: 'device-width', initialScale: 1 };
