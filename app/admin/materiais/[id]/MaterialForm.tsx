@@ -112,6 +112,7 @@ export function MaterialForm({ material, internal, categories, selected, authors
           <select name="visibility" defaultValue={m?.visibility ?? 'restricted'}><option value="restricted">Restrito (membros aprovados)</option><option value="public">Público</option></select>
         </label>
         <label className="check"><input type="checkbox" name="featured" defaultChecked={m?.featured} />Destacar na página inicial</label>
+        <label className="check" style={full}><input type="checkbox" name="course_only" defaultChecked={m?.course_only} />Exclusivo de curso: só aparece para quem foi liberado em um curso que contém este material</label>
         <label className="field">Ordem no destaque<input name="featured_rank" inputMode="numeric" defaultValue={m?.featured_rank ?? ''} /></label>
         <label className="field" style={full}>Observações internas<small>Visíveis só para a equipe</small><textarea name="internal_notes" defaultValue={internal?.internal_notes ?? ''} /></label>
         <label className="field" style={full}>Pendências de revisão<small>Ex.: confirmar autor, título real, ordem das faixas</small><textarea name="review_notes" defaultValue={internal?.review_notes ?? ''} style={{ minHeight: 70 }} /></label>

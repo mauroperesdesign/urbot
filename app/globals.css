@@ -375,3 +375,5 @@ table.data td { padding: 10px 8px; border-top: 1px solid var(--line); vertical-a
 .hbar { display: flex; align-items: center; gap: 8px; }
 .hbar i { display: block; height: 10px; border-radius: 0 4px 4px 0; background: var(--primary); min-width: 2px; }
 .hbar b { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.course-lock { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.1); }
+.course-lock > span { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }

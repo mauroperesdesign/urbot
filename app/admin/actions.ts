@@ -58,6 +58,7 @@ export async function saveMaterial(_: SaveState, form: FormData): Promise<SaveSt
     access_conditions: str(form, 'access_conditions', 1000),
     rights_verified_at: str(form, 'rights_verified_at', 10),
     allow_download: form.get('allow_download') === 'on',
+    course_only: form.get('course_only') === 'on',
   };
 
   let materialId = id;
@@ -252,4 +253,32 @@ export async function removeCourseItem(form: FormData) {
   const rest = items.filter((i) => i.material_id !== String(form.get('material')));
   await Promise.all(rest.map((i, position) => supabase.from('course_items').update({ position }).eq('course_id', course).eq('material_id', i.material_id)));
   revalidatePath(`/admin/materiais/${course}`);
+}
+
+// ---------------------------------------------------------------- acesso por curso
+export async function grantCourseAccess(form: FormData) {
+  const { supabase, user } = await requireStaff();
+  const course = String(form.get('course'));
+  const ids = form.getAll('user').map(String).filter(Boolean).slice(0, 500);
+  if (ids.length) {
+    await supabase.from('course_access').upsert(ids.map((id) => ({ course_id: course, user_id: id, granted_by: user.id })), { onConflict: 'course_id,user_id', ignoreDuplicates: true });
+    await supabase.from('course_requests').delete().eq('course_id', course).in('user_id', ids);
+  }
+  revalidatePath(`/admin/materiais/${course}`);
+  revalidatePath('/admin');
+}
+
+export async function revokeCourseAccess(form: FormData) {
+  const { supabase } = await requireStaff();
+  const course = String(form.get('course'));
+  await supabase.from('course_access').delete().eq('course_id', course).eq('user_id', String(form.get('user')));
+  revalidatePath(`/admin/materiais/${course}`);
+}
+
+export async function rejectCourseRequest(form: FormData) {
+  const { supabase } = await requireStaff();
+  const course = String(form.get('course'));
+  await supabase.from('course_requests').delete().eq('course_id', course).eq('user_id', String(form.get('user')));
+  revalidatePath(`/admin/materiais/${course}`);
+  revalidatePath('/admin');
 }

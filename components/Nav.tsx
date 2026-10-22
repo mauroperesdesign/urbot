@@ -5,15 +5,15 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Icon } from './Icon';
 import { SignOutButton } from './SignOutButton';
 
-type NavItem = { href: string; label: string; icon: string };
+type NavItem = { href: string; label: string; icon: string; auth?: boolean };
 
 const MAIN: NavItem[] = [
   { href: '/', label: 'Descobrir', icon: 'home' },
   { href: '/acervo', label: 'Acervo', icon: 'grid' },
-  { href: '/minha-biblioteca', label: 'Minha biblioteca', icon: 'library' },
+  { href: '/minha-biblioteca', label: 'Minha biblioteca', icon: 'library', auth: true },
   { href: '/acervo?tipo=audiobook', label: 'Audiobooks', icon: 'headphones' },
-  { href: '/listas', label: 'Minhas listas', icon: 'list' },
-  { href: '/minha-biblioteca#favoritos', label: 'Favoritos', icon: 'heart' },
+  { href: '/listas', label: 'Minhas listas', icon: 'list', auth: true },
+  { href: '/minha-biblioteca#favoritos', label: 'Favoritos', icon: 'heart', auth: true },
 ];
 
 function useActive() {
@@ -45,7 +45,8 @@ export function SideNav({ staff, signedIn }: { staff: boolean; signedIn: boolean
   );
   return (
     <>
-      <nav aria-label="Principal" className="side-nav">{MAIN.map(item)}</nav>
+      {/* Áreas pessoais só aparecem para quem entrou */}
+      <nav aria-label="Principal" className="side-nav">{MAIN.filter((l) => signedIn || !l.auth).map(item)}</nav>
       <nav aria-label="Conta" className="side-nav">
         {extra.map(item)}
         {signedIn ? (
@@ -58,13 +59,16 @@ export function SideNav({ staff, signedIn }: { staff: boolean; signedIn: boolean
   );
 }
 
-export function TabBar() {
+export function TabBar({ signedIn }: { signedIn: boolean }) {
   const isActive = useActive();
   const path = usePathname();
   if (path.startsWith('/ler') || path.startsWith('/admin')) return null;
+  const tabs = signedIn
+    ? [MAIN[0], MAIN[1], MAIN[2], { href: '/conta', label: 'Conta', icon: 'user' }]
+    : [MAIN[0], MAIN[1], MAIN[3], { href: '/entrar', label: 'Entrar', icon: 'login' }];
   return (
     <nav aria-label="Navegação principal" className="tabbar">
-      {[MAIN[0], MAIN[1], MAIN[2], { href: '/conta', label: 'Conta', icon: 'user' }].map((l) => (
+      {tabs.map((l) => (
         <Link key={l.href} href={l.href} aria-current={isActive(l.href) ? 'page' : undefined}>
           <Icon name={l.icon} />{l.label === 'Minha biblioteca' ? 'Biblioteca' : l.label === 'Descobrir' ? 'Início' : l.label}
         </Link>

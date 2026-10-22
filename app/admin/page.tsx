@@ -28,6 +28,12 @@ export default async function AdminHome() {
     supabase.from('files').select('size_bytes').not('path', 'is', null),
   ]);
   const usedBytes = (sizes.data ?? []).reduce((a, f) => a + (f.size_bytes ?? 0), 0);
+  const { data: requests } = await supabase.from('course_requests').select('course_id, materials(id, title)').limit(200);
+  const byCourse = new Map<string, { id: string; title: string; n: number }>();
+  (requests ?? []).forEach((r) => {
+    const c = r.materials as unknown as { id: string; title: string } | null;
+    if (c) byCourse.set(c.id, { ...c, n: (byCourse.get(c.id)?.n ?? 0) + 1 });
+  });
   const { data: failed } = await supabase.from('files').select('id, original_name, processing_error, materials(id, title)').eq('processing_status', 'failed').limit(10);
 
   return (
@@ -46,6 +52,16 @@ export default async function AdminHome() {
         <Link className="btn" href="/admin/materiais?status=draft">Revisar rascunhos</Link>
         {pendingUsers ? <Link className="btn" href="/admin/usuarios">Aprovar cadastros</Link> : null}
       </div>
+      {byCourse.size ? (
+        <section className="card stack" style={{ padding: 16, ['--gap' as string]: '8px' }}>
+          <h2 style={{ fontSize: 18 }}>Pedidos de acesso a cursos</h2>
+          {Array.from(byCourse.values()).map((c) => (
+            <Link key={c.id} href={`/admin/materiais/${c.id}`} className="row" style={{ justifyContent: 'space-between' }}>
+              <span>{c.title}</span><span className="badge">{c.n} {c.n === 1 ? 'pedido' : 'pedidos'}</span>
+            </Link>
+          ))}
+        </section>
+      ) : null}
       {failed?.length ? (
         <section className="card" style={{ padding: 16 }}>
           <h2 style={{ fontSize: 24 }}>Falhas de processamento</h2>

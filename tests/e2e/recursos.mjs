@@ -65,6 +65,9 @@ try {
     await p.goto(BASE);
     assert(await p.locator('#boas-vindas').isVisible(), 'sem boas-vindas');
     assert(await p.locator('.welcome a[href="/cadastro"]').count() === 1, 'sem botão Criar conta');
+    assert(!(await p.locator('.sidebar a[href="/minha-biblioteca"], .sidebar a[href="/listas"]').count()), 'visitante vê Minha biblioteca/listas no menu');
+    const r = await p.goto(`${BASE}/minha-biblioteca`);
+    assert(p.url().includes('/entrar'), `minha biblioteca abriu sem login (${r.status()})`);
   });
 
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
@@ -104,7 +107,7 @@ try {
   await check('PDF: texto selecionável, marcador e anotação com trecho citado', async () => {
     await page.goto(`${BASE}/ler/${pdf.slug}`);
     await page.locator('canvas[aria-label^="Página"]').waitFor({ state: 'visible', timeout: 20000 });
-    await page.waitForFunction(() => document.querySelectorAll('[class*=textLayer] span').length > 0, null, { timeout: 15000 });
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('[class*=textLayer] span')).some((s) => (s.textContent ?? '').trim().length > 3), null, { timeout: 15000 });
     await page.evaluate(() => {
       const span = Array.from(document.querySelectorAll('[class*=textLayer] span')).find((s) => (s.textContent ?? '').trim().length > 3);
       const r = document.createRange(); r.selectNodeContents(span); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
@@ -170,12 +173,34 @@ try {
     assert(Number(data?.position_seconds) >= 2, `posição: ${data?.position_seconds}`);
   });
 
-  await check('Curso: aulas em ordem, andamento e "Continuar curso"', async () => {
+  await check('Curso trancado: membro pede acesso, admin libera, aulas aparecem', async () => {
     await page.goto(`${BASE}/material/${course.slug}`);
-    await page.locator('#h-aulas').waitFor();
+    assert(await page.locator('.course-lock').isVisible(), 'curso não está trancado');
+    assert(!(await page.locator('.lessons .lesson').count()), 'aulas visíveis sem liberação');
+    await page.click('button:has-text("Pedir acesso")');
+    await page.locator('text=Pedido de acesso enviado').waitFor();
+    const adm = await login(await browser.newContext({ viewport: { width: 1366, height: 900 } }), 'admin@teste.local');
+    await adm.goto(`${BASE}/admin`);
+    await adm.locator('text=Pedidos de acesso a cursos').waitFor();
+    await adm.goto(`${BASE}/admin/materiais/${course.id}`);
+    await adm.click('section[aria-label="Quem tem acesso ao curso"] button:has-text("Liberar")');
+    await adm.locator('section[aria-label="Quem tem acesso ao curso"] button:has-text("Tirar acesso")').waitFor();
+    await adm.context().close();
+    await page.goto(`${BASE}/material/${course.slug}`);
     const titles = await page.locator('.lessons .lesson-t b').allInnerTexts();
     assert(titles[0] === 'PDF de teste E2E' && titles[1] === 'EPUB de teste E2E', `ordem: ${titles}`);
     assert(await page.locator('.mhero-actions a:has-text("Continuar curso")').count() === 1, 'sem Continuar curso');
+  });
+
+  await check('Aula exclusiva de curso some do acervo para quem não foi liberado', async () => {
+    await sb.from('materials').update({ course_only: true }).eq('id', epub.id);
+    await sb.from('course_access').delete().eq('course_id', course.id).eq('user_id', member.id);
+    const r = await page.goto(`${BASE}/material/${epub.slug}`);
+    assert(r.status() === 404, `sem liberação abriu (${r.status()})`);
+    await sb.from('course_access').insert({ course_id: course.id, user_id: member.id });
+    const r2 = await page.goto(`${BASE}/material/${epub.slug}`);
+    assert(r2.status() === 200, `liberado não abriu (${r2.status()})`);
+    await sb.from('materials').update({ course_only: false }).eq('id', epub.id);
   });
 
   await check('Início mostra "Continue de onde parou" com vídeo e leitura', async () => {
@@ -226,6 +251,7 @@ try {
   await browser.close();
   // limpeza
   await sb.from('collections').delete().eq('user_id', member.id).like('name', `%${run}`);
+  await sb.from('course_access').delete().eq('course_id', course.id);
   const ids = [pdf.id, epub.id, video.id, course.id];
   const { data: files } = await sb.from('files').select('path').in('material_id', ids);
   await sb.storage.from('materials').remove((files ?? []).map((f) => f.path));

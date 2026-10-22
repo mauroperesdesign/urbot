@@ -21,6 +21,7 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Leitor de EPUB: sumário, busca, tamanho da letra, modos claro/sépia/escuro, progresso salvo | ✅ |
 | Vídeos e videoaulas: legendas (.vtt), velocidade, posição salva | ✅ |
 | Cursos e trilhas: sequência de aulas montada no painel, andamento por aula, “Continuar curso” | ✅ |
+| Acesso por curso: cada curso tem sua lista de pessoas liberadas; membros pedem acesso e a equipe libera no painel; aulas podem ser “exclusivas de curso” | ✅ |
 | Marcadores e anotações (com trecho citado) no PDF e no EPUB; anotações recentes em Minha biblioteca | ✅ |
 | Listas pessoais (“Salvar em lista”), privadas de cada pessoa | ✅ |
 | Leitura sem internet: PDF/EPUB salvos no aparelho, apagados ao sair da conta | ✅ |

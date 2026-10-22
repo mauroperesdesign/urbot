@@ -50,6 +50,7 @@ export interface Material {
   access_conditions: string | null;
   rights_verified_at: string | null;
   allow_download: boolean;
+  course_only: boolean;
   cover_path: string | null;
   created_at: string;
   updated_at: string;

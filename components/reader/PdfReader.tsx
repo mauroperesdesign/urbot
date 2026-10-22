@@ -32,7 +32,8 @@ export function PdfReader(props: {
   const [page, setPage] = useState(props.initialPage);
   const [pages, setPages] = useState(0);
   const [fit, setFit] = useState<Fit>('width');
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(1); // só para exibir o percentual
+  const [customZoom, setCustomZoom] = useState(1); // escala escolhida pela pessoa (ajuste livre)
   const [theme, setTheme] = useState<Theme>('claro');
   const [panel, setPanel] = useState<'none' | 'toc' | 'search' | 'notes'>('none');
   const [quote, setQuote] = useState('');
@@ -105,7 +106,7 @@ export function PdfReader(props: {
     const base = p.getViewport({ scale: 1 });
     const availW = box.clientWidth - 24;
     const availH = box.clientHeight - 24;
-    const scale = fit === 'width' ? availW / base.width : fit === 'page' ? Math.min(availW / base.width, availH / base.height) : zoom;
+    const scale = fit === 'width' ? availW / base.width : fit === 'page' ? Math.min(availW / base.width, availH / base.height) : customZoom;
     const viewport = p.getViewport({ scale });
     const ratio = window.devicePixelRatio || 1;
     el.width = Math.floor(viewport.width * ratio);
@@ -127,8 +128,8 @@ export function PdfReader(props: {
         await new TextLayer({ textContentSource: p.streamTextContent(), container: layer, viewport }).render();
       } catch { /* PDF escaneado sem texto */ }
     }
-    if (fit !== 'custom') setZoom(scale);
-  }, [page, fit, zoom]);
+    setZoom(scale);
+  }, [page, fit, customZoom]);
 
   useEffect(() => { if (status === 'ready') void render(); }, [status, render]);
   useEffect(() => {
@@ -154,7 +155,7 @@ export function PdfReader(props: {
   }, [page, pages, status, props.canSave, props.materialId]);
 
   const go = (n: number) => setPage((p) => Math.min(Math.max(1, n || p), pages || 1));
-  const zoomBy = (f: number) => { setFit('custom'); setZoom((z) => Math.min(4, Math.max(0.4, z * f))); };
+  const zoomBy = (f: number) => { setFit('custom'); setCustomZoom(Math.min(4, Math.max(0.4, zoom * f))); };
 
   async function runSearch(e: React.FormEvent) {
     e.preventDefault();

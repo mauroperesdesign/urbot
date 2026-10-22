@@ -61,7 +61,7 @@ export async function Topbar() {
           )}
         </div>
       </header>
-      <Suspense fallback={null}><TabBar /></Suspense>
+      <Suspense fallback={null}><TabBar signedIn={!!user} /></Suspense>
     </>
   );
 }

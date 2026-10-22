@@ -7,6 +7,7 @@ import { Cover, MaterialCard } from '@/components/Cover';
 import { Icon } from '@/components/Icon';
 import { ListPicker } from '@/components/ListPicker';
 import { FavoriteButton } from './FavoriteButton';
+import { cancelCourseRequest, requestCourseAccess } from './actions';
 import { TYPE_LABEL, LISTEN_TYPES, primaryAction, formatDuration } from '@/lib/labels';
 import type { FileRow, Material } from '@/lib/types';
 
@@ -56,7 +57,16 @@ export default async function MaterialPage({ params }: { params: { slug: string 
   const supplementary = fileRows.filter((f) => f.role === 'supplementary');
   const isCourse = m.type === 'course';
   const course = isCourse ? await courseLessons(m.id) : null;
-  const hasContent = isCourse ? !!course?.lessons.length : LISTEN_TYPES.includes(m.type) ? tracks.some((t) => t.path) : !!main?.path || !!main?.external_url;
+  // Curso: a permissão é por curso (liberada pela equipe no painel)
+  const [{ data: courseAccess }, { data: lessonCount }, { data: request }] = isCourse
+    ? await Promise.all([
+        supabase.rpc('has_course_access', { course: m.id }),
+        supabase.rpc('course_lesson_count', { course: m.id }),
+        user ? supabase.from('course_requests').select('created_at').eq('course_id', m.id).eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+      ])
+    : [{ data: true }, { data: 0 }, { data: null }];
+  const locked = isCourse && !courseAccess;
+  const hasContent = isCourse ? !locked && !!course?.lessons.length : LISTEN_TYPES.includes(m.type) ? tracks.some((t) => t.path) : !!main?.path || !!main?.external_url;
 
   const categories = m.material_categories.map((c) => c.categories).filter(Boolean) as { id: string; name: string; slug: string }[];
   const authors = m.material_authors.sort((a, b) => a.position - b.position).filter((a) => a.authors);
@@ -79,7 +89,7 @@ export default async function MaterialPage({ params }: { params: { slug: string 
     m.page_count ? { v: String(m.page_count), l: 'Páginas' } : null,
     tracks.length ? { v: String(tracks.length), l: tracks.length === 1 ? 'Faixa' : 'Faixas' } : null,
     m.duration_seconds ? { v: formatDuration(m.duration_seconds), l: 'Duração' } : null,
-    course ? { v: String(course.lessons.length), l: course.lessons.length === 1 ? 'Aula' : 'Aulas' } : null,
+    course ? { v: String(locked ? lessonCount ?? 0 : course.lessons.length), l: (locked ? lessonCount : course.lessons.length) === 1 ? 'Aula' : 'Aulas' } : null,
     { v: TYPE_LABEL[m.type], l: 'Formato' },
     { v: LANG[m.language] ?? m.language.toUpperCase(), l: 'Idioma' },
     m.year ? { v: String(m.year), l: 'Ano' } : null,
@@ -123,6 +133,19 @@ export default async function MaterialPage({ params }: { params: { slug: string 
               <Link href={cta.href} className="btn btn-primary" style={{ minHeight: 48 }}>
                 {cta.label} <Icon name={action.base === '/ouvir' ? 'headphones' : action.base === '/assistir' ? 'play' : 'book'} size={18} />
               </Link>
+            ) : locked ? (
+              <div className="course-lock">
+                <span><Icon name="lock" size={18} /> {request ? 'Pedido de acesso enviado. A administração vai analisar.' : 'Este curso precisa de liberação da administração.'}</span>
+                {user ? (
+                  <form action={request ? cancelCourseRequest : requestCourseAccess}>
+                    <input type="hidden" name="course" value={m.id} />
+                    <input type="hidden" name="slug" value={m.slug} />
+                    <button className={request ? 'btn btn-ghost' : 'btn btn-primary'} type="submit" style={request ? { color: '#fff' } : undefined}>
+                      {request ? 'Cancelar pedido' : 'Pedir acesso'}
+                    </button>
+                  </form>
+                ) : <Link className="btn btn-primary" href={`/entrar?next=/material/${m.slug}`}>Entre para pedir acesso</Link>}
+              </div>
             ) : <p className="alert" style={{ margin: 0 }}>{isCourse ? 'Este curso ainda não tem aulas publicadas.' : 'O arquivo deste material ainda não foi enviado para a biblioteca.'}</p>}
             {user ? (
               <>
@@ -145,7 +168,13 @@ export default async function MaterialPage({ params }: { params: { slug: string 
             </section>
           ) : null}
 
-          {course ? (
+          {course && locked ? (
+            <section className="panel stack" aria-labelledby="h-aulas">
+              <h2 id="h-aulas" style={{ fontSize: 18 }}>Conteúdo do curso</h2>
+              <div className="empty"><Icon name="lock" size={22} /><b>{lessonCount ? `${lessonCount} ${lessonCount === 1 ? 'aula' : 'aulas'}` : 'Aulas'} disponíveis após a liberação</b>
+                <span className="muted">O acesso a cada curso é liberado individualmente pela administração do terreiro.</span></div>
+            </section>
+          ) : course ? (
             <section className="panel stack" aria-labelledby="h-aulas">
               <div className="panel-head" style={{ margin: 0 }}>
                 <h2 id="h-aulas">Conteúdo do curso</h2>

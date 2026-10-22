@@ -7,10 +7,10 @@ import { addCourseItem, moveCourseItem, removeCourseItem, updateCourseItem } fro
 export async function CourseEditor({ courseId }: { courseId: string }) {
   const { supabase } = await requireStaff();
   const [{ data: items }, { data: all }] = await Promise.all([
-    supabase.from('course_items').select('material_id, position, section, materials!course_items_material_id_fkey(title, type, status)').eq('course_id', courseId).order('position'),
+    supabase.from('course_items').select('material_id, position, section, materials!course_items_material_id_fkey(title, type, status, course_only)').eq('course_id', courseId).order('position'),
     supabase.from('materials').select('id, title, type').neq('type', 'course').neq('id', courseId).order('title'),
   ]);
-  const rows = (items ?? []) as unknown as { material_id: string; position: number; section: string | null; materials: { title: string; type: MaterialType; status: string } | null }[];
+  const rows = (items ?? []) as unknown as { material_id: string; position: number; section: string | null; materials: { title: string; type: MaterialType; status: string; course_only: boolean } | null }[];
   const used = new Set(rows.map((r) => r.material_id));
   const options = (all ?? []).filter((m) => !used.has(m.id));
   const hidden = (material: string) => (<><input type="hidden" name="course" value={courseId} /><input type="hidden" name="material" value={material} /></>);
@@ -18,13 +18,13 @@ export async function CourseEditor({ courseId }: { courseId: string }) {
   return (
     <section className="card stack" style={{ padding: 20, ['--gap' as string]: '14px' }} aria-label="Aulas do curso">
       <h2 style={{ fontSize: 20 }}>Aulas do curso</h2>
-      <p className="muted" style={{ margin: 0, fontSize: 13 }}>Escolha os materiais do acervo que formam este curso, na ordem em que devem ser estudados. Use “Seção” para agrupar (ex.: “Módulo 1 — Fundamentos”).</p>
+      <p className="muted" style={{ margin: 0, fontSize: 13 }}>Escolha os materiais do acervo que formam este curso, na ordem em que devem ser estudados. Use “Seção” para agrupar (ex.: “Módulo 1 — Fundamentos”). Para uma aula não aparecer no acervo geral, marque “Exclusivo de curso” no cadastro dela.</p>
       {rows.length ? (
         <ol className="stack" style={{ listStyle: 'none', margin: 0, padding: 0, ['--gap' as string]: '6px' }}>
           {rows.map((r, i) => (
             <li key={r.material_id} className="row" style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '8px 10px' }}>
               <span className="badge badge-sand" style={{ minWidth: 30, justifyContent: 'center' }}>{i + 1}</span>
-              <span style={{ flex: '1 1 200px', fontWeight: 600 }}>{r.materials?.title ?? '—'} <small className="muted">· {r.materials ? TYPE_LABEL[r.materials.type] : ''}{r.materials && r.materials.status !== 'published' ? ' · não publicado' : ''}</small></span>
+              <span style={{ flex: '1 1 200px', fontWeight: 600 }}>{r.materials?.title ?? '—'} <small className="muted">· {r.materials ? TYPE_LABEL[r.materials.type] : ''}{r.materials && r.materials.status !== 'published' ? ' · não publicado' : ''}{r.materials?.course_only ? ' · exclusivo do curso' : ' · também no acervo'}</small></span>
               <form action={updateCourseItem} className="row" style={{ ['--gap' as string]: '4px' }}>
                 {hidden(r.material_id)}
                 <label className="sr-only" htmlFor={`sec-${r.material_id}`}>Seção</label>

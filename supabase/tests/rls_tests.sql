@@ -132,8 +132,12 @@ rollback;
 \echo '== cursos, listas, miniaturas e estatísticas'
 insert into public.materials (id, slug, title, type, status, visibility, publication_authorized) values
   ('10000000-0000-0000-0000-000000000004', 'curso', 'Curso restrito', 'course', 'published', 'restricted', true);
+insert into public.materials (id, slug, title, type, status, visibility, publication_authorized, course_only) values
+  ('10000000-0000-0000-0000-000000000005', 'aula-exclusiva', 'Aula exclusiva', 'handout', 'published', 'restricted', true, true);
 insert into public.course_items (course_id, material_id, position) values
-  ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 0);
+  ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 0),
+  ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000005', 1);
+insert into public.course_access (course_id, user_id) values ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000000c');
 insert into public.collections (id, user_id, name) values ('40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', 'Lista do membro');
 insert into storage.objects (bucket_id, name) values ('covers', 'thumbs/p.jpg.webp'), ('covers', 'thumbs/r.jpg.webp');
 begin;
@@ -149,7 +153,8 @@ begin;
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
 do $$ begin
-  assert (select count(*) from public.course_items) = 0, 'não aprovado não vê aulas de curso restrito';
+  assert (select count(*) from public.course_items) = 0, 'não aprovado não vê aulas, mesmo liberado no curso';
+  assert (select count(*) from public.materials where slug = 'aula-exclusiva') = 0, 'não aprovado não vê aula exclusiva';
   assert (select count(*) from public.collections) = 0, 'não vê listas de outra pessoa';
   assert public.t_expect_error($q$insert into public.collection_items (collection_id, material_id) values ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001')$q$), 'não mexe em lista alheia';
 end $$;
@@ -158,10 +163,19 @@ begin;
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
 do $$ begin
-  assert (select count(*) from public.course_items) = 1, 'membro aprovado vê as aulas';
+  assert (select count(*) from public.course_items) = 0, 'membro sem liberação no curso não vê as aulas';
+  assert (select count(*) from public.materials where slug = 'curso') = 1, 'membro vê que o curso existe';
+  assert (select count(*) from public.materials where slug = 'aula-exclusiva') = 0, 'aula exclusiva some para quem não foi liberado';
+  assert not public.can_view_material('10000000-0000-0000-0000-000000000005'), 'sem acesso ao arquivo da aula exclusiva';
+  assert public.course_lesson_count('10000000-0000-0000-0000-000000000004') = 2, 'vê quantas aulas o curso tem';
+  assert not public.has_course_access('10000000-0000-0000-0000-000000000004'), 'sem acesso ao curso';
+  insert into public.course_requests (course_id, user_id) values ('10000000-0000-0000-0000-000000000004', auth.uid());
+  assert public.t_expect_error($q$insert into public.course_access (course_id, user_id) values ('10000000-0000-0000-0000-000000000004', auth.uid())$q$), 'membro não se libera sozinho';
+  assert public.t_expect_error($q$insert into public.course_requests (course_id, user_id) values ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000000c')$q$), 'não pede acesso em nome de outra pessoa';
   assert (select count(*) from storage.objects where name like 'thumbs/%') = 2, 'membro vê as miniaturas que pode ver';
   assert public.t_expect_error($q$insert into public.course_items (course_id, material_id) values ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001')$q$), 'membro não monta curso';
   assert public.t_expect_error($q$select public.admin_stats(30)$q$), 'membro não lê estatísticas';
+  assert (select count(*) from public.course_access) = 0, 'não vê quem foi liberado';
   insert into public.collection_items (collection_id, material_id) values ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002');
   assert public.t_expect_error($q$insert into public.collection_items (collection_id, material_id) values ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003')$q$), 'não põe rascunho na lista';
 end $$;
@@ -170,11 +184,25 @@ begin;
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
 do $$ declare st jsonb; begin
+  insert into public.course_access (course_id, user_id) values ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000000b');
+  assert (select count(*) from public.course_requests) >= 0, 'equipe lê pedidos';
   st := public.admin_stats(30);
-  assert (st->>'published')::int = 3, 'estatísticas contam publicados';
+  assert (st->>'published')::int = 4, 'estatísticas contam publicados';
   assert (st->>'approved')::int = 2, 'estatísticas contam aprovados';
   insert into public.course_items (course_id, material_id, position) values ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 1);
   assert public.t_expect_error($q$insert into public.course_items (course_id, material_id) values ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004')$q$), 'curso não contém a si mesmo';
+end $$;
+rollback;
+
+insert into public.course_access (course_id, user_id) values ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-00000000000b');
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  assert public.has_course_access('10000000-0000-0000-0000-000000000004'), 'liberado tem acesso ao curso';
+  assert (select count(*) from public.course_items) = 2, 'liberado vê as aulas';
+  assert (select count(*) from public.materials where slug = 'aula-exclusiva') = 1, 'liberado vê a aula exclusiva';
+  assert (select count(*) from public.course_access) = 1, 'vê só a própria liberação';
 end $$;
 rollback;
 

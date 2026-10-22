@@ -4,6 +4,7 @@ import { requireStaff, withCoverUrls } from '@/lib/data';
 import { MaterialForm } from './MaterialForm';
 import { FileManager } from './FileManager';
 import { CourseEditor } from './CourseEditor';
+import { CourseAccess } from './CourseAccess';
 import type { Category, FileRow, Material } from '@/lib/types';
 import { deleteMaterial } from '../../actions';
 import { DeleteButton } from '@/components/admin/Confirm';
@@ -52,6 +53,7 @@ export default async function EditMaterial({ params, searchParams }: { params: {
       {searchParams.criado ? <p className="alert alert-ok">Material criado como rascunho. Agora envie a capa e os arquivos.</p> : null}
       {!isNew ? <FileManager materialId={material!.id} materialType={material!.type} files={files} coverUrl={coverUrl} /> : null}
       {!isNew && material!.type === 'course' ? <CourseEditor courseId={material!.id} /> : null}
+      {!isNew && material!.type === 'course' ? <CourseAccess courseId={material!.id} title={material!.title} /> : null}
       <MaterialForm material={material} internal={internal} categories={categories} selected={selected} authors={authors} />
       {!isNew && profile?.role === 'admin' ? (
         <form action={deleteMaterial} className="card stack" style={{ padding: 18, borderColor: 'color-mix(in srgb, var(--danger) 35%, var(--line))' }}>
