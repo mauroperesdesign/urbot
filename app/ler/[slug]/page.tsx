@@ -3,11 +3,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSession } from '@/lib/data';
 import { PdfReader } from '@/components/reader/PdfReader';
+import { EpubReader } from '@/components/reader/EpubReader';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { robots: { index: false, follow: false }, title: 'Leitura' };
 
-export default async function ReadPage({ params }: { params: { slug: string } }) {
+export default async function ReadPage({ params, searchParams }: { params: { slug: string }; searchParams: { local?: string } }) {
   const { supabase, user } = await getSession();
   const { data: m } = await supabase.from('materials').select('id, slug, title, type, allow_download, page_count').eq('slug', params.slug).maybeSingle();
   if (!m) notFound();
@@ -27,7 +28,8 @@ export default async function ReadPage({ params }: { params: { slug: string } })
   }
 
   const isPdf = (file.mime_type ?? '').includes('pdf') || (file.path ?? '').toLowerCase().endsWith('.pdf');
-  if (!isPdf) {
+  const isEpub = (file.mime_type ?? '').includes('epub') || (file.path ?? '').toLowerCase().endsWith('.epub');
+  if (!isPdf && !isEpub) {
     return (
       <div className="container" style={{ maxWidth: 640, marginTop: 40 }}>
         <div className="card stack" style={{ padding: 24 }}>
@@ -46,13 +48,19 @@ export default async function ReadPage({ params }: { params: { slug: string } })
     : { data: null };
   void supabase.from('access_events').insert({ material_id: m.id, user_id: user?.id ?? null, event: 'read' }).then(() => undefined);
 
+  // ?local= abre num marcador ou anotação; senão, onde a pessoa parou
+  const start = searchParams.local?.slice(0, 500) || progress?.location || null;
+  if (isEpub) {
+    return <EpubReader fileId={file.id} materialId={m.id} slug={m.slug} title={m.title} canSave={!!user}
+      initialLocation={start && start.startsWith('epubcfi(') ? start : null} />;
+  }
   return (
     <PdfReader
       fileId={file.id}
       materialId={m.id}
       slug={m.slug}
       title={m.title}
-      initialPage={Math.max(1, Number(progress?.location) || 1)}
+      initialPage={Math.max(1, Number(start) || 1)}
       canSave={!!user}
     />
   );

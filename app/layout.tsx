@@ -5,6 +5,7 @@ import './globals.css';
 import { Sidebar, Topbar, currentTheme } from '@/components/Header';
 import { PlayerProvider } from '@/components/player/PlayerProvider';
 import { MiniPlayer } from '@/components/player/MiniPlayer';
+import { ServiceWorker } from '@/components/ServiceWorker';
 
 const sans = Poppins({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-sans', display: 'swap' });
 const read = Literata({ subsets: ['latin'], variable: '--font-read', display: 'swap' });
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <MiniPlayer />
+          <ServiceWorker />
         </PlayerProvider>
       </body>
     </html>

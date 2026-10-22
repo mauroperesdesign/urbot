@@ -148,6 +148,7 @@ async function deleteMaterials(ids: string[]) {
   const add = (bucket: string, path: string | null) => { if (path) byBucket.set(bucket, [...(byBucket.get(bucket) ?? []), path]); };
   for (const m of (mats ?? []) as { cover_path: string | null; files: { bucket: string; path: string | null }[] }[]) {
     add('covers', m.cover_path);
+    if (m.cover_path) add('covers', `thumbs/${m.cover_path}.webp`);
     m.files.forEach((f) => add(f.bucket, f.path));
   }
   for (const [bucket, paths] of Array.from(byBucket)) {
@@ -204,4 +205,51 @@ export async function setAccess(form: FormData) {
   });
   if (error) redirect(`/admin/usuarios?erro=${encodeURIComponent(error.message)}`);
   revalidatePath('/admin/usuarios');
+}
+
+// ---------------------------------------------------------------- cursos e trilhas
+async function courseItems(course: string) {
+  const { supabase } = await requireStaff();
+  const { data } = await supabase.from('course_items').select('material_id, position').eq('course_id', course).order('position');
+  return { supabase, items: data ?? [] };
+}
+
+export async function addCourseItem(form: FormData) {
+  const course = String(form.get('course'));
+  const material = String(form.get('material'));
+  const { supabase, items } = await courseItems(course);
+  if (material && material !== course && !items.some((i) => i.material_id === material)) {
+    await supabase.from('course_items').insert({ course_id: course, material_id: material, position: items.length, section: str(form, 'section', 120) });
+  }
+  revalidatePath(`/admin/materiais/${course}`);
+}
+
+export async function moveCourseItem(form: FormData) {
+  const course = String(form.get('course'));
+  const material = String(form.get('material'));
+  const dir = form.get('dir') === 'up' ? -1 : 1;
+  const { supabase, items } = await courseItems(course);
+  const order = items.map((i) => i.material_id);
+  const at = order.indexOf(material);
+  const to = at + dir;
+  if (at < 0 || to < 0 || to >= order.length) return;
+  [order[at], order[to]] = [order[to], order[at]];
+  await Promise.all(order.map((id, position) => supabase.from('course_items').update({ position }).eq('course_id', course).eq('material_id', id)));
+  revalidatePath(`/admin/materiais/${course}`);
+}
+
+export async function updateCourseItem(form: FormData) {
+  const course = String(form.get('course'));
+  const { supabase } = await requireStaff();
+  await supabase.from('course_items').update({ section: str(form, 'section', 120) }).eq('course_id', course).eq('material_id', String(form.get('material')));
+  revalidatePath(`/admin/materiais/${course}`);
+}
+
+export async function removeCourseItem(form: FormData) {
+  const course = String(form.get('course'));
+  const { supabase, items } = await courseItems(course);
+  await supabase.from('course_items').delete().eq('course_id', course).eq('material_id', String(form.get('material')));
+  const rest = items.filter((i) => i.material_id !== String(form.get('material')));
+  await Promise.all(rest.map((i, position) => supabase.from('course_items').update({ position }).eq('course_id', course).eq('material_id', i.material_id)));
+  revalidatePath(`/admin/materiais/${course}`);
 }

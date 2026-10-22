@@ -38,7 +38,7 @@ export default async function ListenPage({ params, searchParams }: { params: { s
       startAt = last!.completed ? 0 : Number(last!.position_seconds) || 0;
     }
   }
-  const [cover] = await withCoverUrls([{ cover_path: m.cover_path }]);
+  const [cover] = await withCoverUrls([{ cover_path: m.cover_path }], { full: true });
   const author = ((m.material_authors ?? []) as unknown as { position: number; authors: { name: string } | null }[])
     .sort((a, b) => a.position - b.position).map((a) => a.authors?.name).filter(Boolean).join(', ');
   void supabase.from('access_events').insert({ material_id: m.id, user_id: user?.id ?? null, event: 'listen' }).then(() => undefined);

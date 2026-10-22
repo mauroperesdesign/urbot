@@ -27,4 +27,7 @@ say "Compilando"
 sudo -u biblioteca -H bash -c "cd '$APP' && npm ci --no-audit --no-fund --loglevel=error && NEXT_TELEMETRY_DISABLED=1 npm run build"
 systemctl restart biblioteca
 wait_for "site" 60 curl -fs http://127.0.0.1:3000/robots.txt
+
+say "Gerando miniaturas das capas que faltam"
+(cd "$APP" && set -a && . "$SECRETS" && set +a && sudo -E -u biblioteca node scripts/gerar-miniaturas.mjs) || warn "miniaturas não geradas (o site usa as capas originais)"
 say "Atualizado."

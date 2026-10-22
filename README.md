@@ -4,7 +4,7 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 
 **Tecnologia:** Next.js 14 (App Router) · Supabase (PostgreSQL, autenticação e armazenamento) · pdf.js · upload retomável (TUS).
 
-## O que já funciona (Etapa 1 + base da Etapa 2)
+## O que já funciona
 
 | Área | Situação |
 |---|---|
@@ -18,7 +18,15 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Painel admin: visão geral com números reais, materiais (filtros, pendências, ações em lote), formulário que muda por tipo, envio de capa/PDF/faixas com progresso e retomada, detecção de arquivo duplicado (SHA-256), leitura real de páginas e duração, categorias hierárquicas, usuários e permissões, exportação CSV | ✅ |
 | Arquivos privados com URL assinada e temporária; RLS em todas as tabelas e buckets | ✅ testado |
 | SEO: títulos, descrições, Open Graph, `robots.txt`, `sitemap.xml` (só materiais públicos), `noindex` nas páginas privadas | ✅ |
-| Leitor EPUB, vídeos, cursos/trilhas, listas personalizadas, anotações na interface, extração de texto para busca | ⏳ próximas etapas (as tabelas de anotações, marcadores e listas já existem) |
+| Leitor de EPUB: sumário, busca, tamanho da letra, modos claro/sépia/escuro, progresso salvo | ✅ |
+| Vídeos e videoaulas: legendas (.vtt), velocidade, posição salva | ✅ |
+| Cursos e trilhas: sequência de aulas montada no painel, andamento por aula, “Continuar curso” | ✅ |
+| Marcadores e anotações (com trecho citado) no PDF e no EPUB; anotações recentes em Minha biblioteca | ✅ |
+| Listas pessoais (“Salvar em lista”), privadas de cada pessoa | ✅ |
+| Leitura sem internet: PDF/EPUB salvos no aparelho, apagados ao sair da conta | ✅ |
+| Estatísticas para a equipe: pessoas ativas, acessos por dia, materiais mais acessados | ✅ |
+| Página de boas-vindas para visitantes; miniaturas leves das capas | ✅ |
+| Extração de texto dos PDFs para a busca geral | ⏳ próxima etapa |
 
 ## Como colocar no ar
 
@@ -76,6 +84,7 @@ Alternativa sem servidor: [Vercel](https://vercel.com) → *Import Project* → 
 - Limites de tamanho e tipos MIME aceitos são definidos nos buckets (e validados também no painel).
 - Publicar exige “publicação autorizada” registrada (restrição no banco).
 - Testes automatizados das regras: `npm run test:db` (sobe um PostgreSQL temporário e verifica anônimo, membro não aprovado, membro aprovado e admin).
+- Testes no navegador: `npm run test:e2e` (12 critérios obrigatórios) e `node tests/e2e/recursos.mjs` (EPUB, vídeo, cursos, listas, anotações, offline, estatísticas).
 
 ## Backups e recuperação
 

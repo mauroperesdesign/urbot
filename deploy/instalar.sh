@@ -210,6 +210,7 @@ if [ "$IMPORT" = 1 ]; then
   ARGS=(--publicar); [ "$FILES" = 1 ] && ARGS+=(--enviar-arquivos)
   (cd "$APP" && set -a && . "$SECRETS" && set +a && sudo -E -u biblioteca node scripts/import-acervo.mjs "${ARGS[@]}") \
     || warn "a importação terminou com falhas (veja acima); pode rodar de novo depois: bash $APP/deploy/importar.sh"
+  (cd "$APP" && set -a && . "$SECRETS" && set +a && sudo -E -u biblioteca node scripts/gerar-miniaturas.mjs) || warn "miniaturas das capas não geradas"
 else
   say "10/10 Importação do acervo pulada (--sem-importar)"
 fi

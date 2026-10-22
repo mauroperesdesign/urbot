@@ -29,14 +29,20 @@ export function isStaff(profile: Profile | null) {
   return !!profile && (profile.role === 'editor' || profile.role === 'admin');
 }
 
-// URLs assinadas e temporárias para capas (bucket privado; a RLS decide quem pode)
-export async function withCoverUrls<T extends { cover_path: string | null }>(items: T[]) {
+// Miniatura leve (gerada no envio da capa ou por scripts/gerar-miniaturas.mjs)
+export const thumbPath = (coverPath: string) => `thumbs/${coverPath}.webp`;
+
+// URLs assinadas e temporárias para capas (bucket privado; a RLS decide quem pode).
+// Por padrão usa a miniatura quando ela existe; { full: true } pede a imagem original.
+export async function withCoverUrls<T extends { cover_path: string | null }>(items: T[], opts: { full?: boolean } = {}) {
   const { supabase } = await getSession();
-  const paths = Array.from(new Set(items.map((i) => i.cover_path).filter(Boolean))) as string[];
-  if (!paths.length) return items.map((i) => ({ ...i, coverUrl: null as string | null }));
+  const covers = Array.from(new Set(items.map((i) => i.cover_path).filter(Boolean))) as string[];
+  if (!covers.length) return items.map((i) => ({ ...i, coverUrl: null as string | null }));
+  const paths = opts.full ? covers : [...covers, ...covers.map(thumbPath)];
   const { data } = await supabase.storage.from('covers').createSignedUrls(paths, 60 * 60);
-  const map = new Map((data ?? []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
-  return items.map((i) => ({ ...i, coverUrl: (i.cover_path && map.get(i.cover_path)) || null }));
+  const map = new Map((data ?? []).filter((d) => d.signedUrl && !d.error).map((d) => [d.path, d.signedUrl]));
+  const pick = (p: string) => (!opts.full && map.get(thumbPath(p))) || map.get(p) || null;
+  return items.map((i) => ({ ...i, coverUrl: i.cover_path ? pick(i.cover_path) : null }));
 }
 
 export const CARD_COLUMNS = 'id, slug, title, type, cover_path, material_authors(position, authors(name))';

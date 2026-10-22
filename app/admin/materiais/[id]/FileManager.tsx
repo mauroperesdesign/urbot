@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Upload } from 'tus-js-client';
 import { createClient } from '@/lib/supabase/client';
 import { deleteFile } from '../../actions';
-import { LISTEN_TYPES, READ_TYPES, formatDuration } from '@/lib/labels';
+import { LISTEN_TYPES, READ_TYPES, WATCH_TYPES, formatDuration } from '@/lib/labels';
 import type { FileRole, FileRow, MaterialType } from '@/lib/types';
 
-const LIMITS: Record<'cover' | 'main' | 'track' | 'supplementary', { mimes: string[]; maxMb: number; accept: string }> = {
+type Role = 'cover' | 'main' | 'video' | 'track' | 'subtitle' | 'supplementary';
+const LIMITS: Record<Role, { mimes: string[]; maxMb: number; accept: string }> = {
   cover: { mimes: ['image/jpeg', 'image/png', 'image/webp'], maxMb: 5, accept: 'image/jpeg,image/png,image/webp' },
   main: { mimes: ['application/pdf', 'application/epub+zip'], maxMb: 500, accept: '.pdf,.epub,application/pdf,application/epub+zip' },
+  video: { mimes: ['video/mp4', 'video/webm'], maxMb: 500, accept: 'video/mp4,video/webm,.mp4,.webm' },
+  subtitle: { mimes: ['text/vtt'], maxMb: 5, accept: '.vtt,text/vtt' },
   track: { mimes: ['audio/mpeg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/ogg', 'audio/m4a', 'audio/wav', 'audio/x-wav'], maxMb: 300, accept: 'audio/*,.m4a,.mp3' },
   supplementary: { mimes: ['application/pdf', 'text/plain', 'text/vtt'], maxMb: 100, accept: '.pdf,.txt,.vtt' },
 };
@@ -18,7 +21,23 @@ const LIMITS: Record<'cover' | 'main' | 'track' | 'supplementary', { mimes: stri
 interface Job { name: string; pct: number; status: 'fila' | 'enviando' | 'ok' | 'erro'; message?: string }
 
 const safeName = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_').slice(-120);
-const mimeOf = (f: File) => f.type || (f.name.toLowerCase().endsWith('.m4a') ? 'audio/mp4' : f.name.toLowerCase().endsWith('.epub') ? 'application/epub+zip' : '');
+const mimeOf = (f: File) => {
+  const n = f.name.toLowerCase();
+  if (n.endsWith('.vtt')) return 'text/vtt';
+  return f.type || (n.endsWith('.m4a') ? 'audio/mp4' : n.endsWith('.epub') ? 'application/epub+zip' : '');
+};
+
+// Miniatura leve da capa (320 px, WebP), gerada no navegador e usada nos cards
+async function coverThumb(file: File) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const w = Math.min(320, bmp.width);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = Math.round((bmp.height / bmp.width) * w);
+    c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise<Blob | null>((r) => c.toBlob(r, 'image/webp', 0.7));
+  } catch { return null; }
+}
 const naturalSort = (a: File, b: File) => a.name.localeCompare(b.name, 'pt', { numeric: true });
 
 async function sha256(file: File) {
@@ -55,10 +74,12 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [busy, setBusy] = useState(false);
-  const inputs = { cover: useRef<HTMLInputElement>(null), main: useRef<HTMLInputElement>(null), track: useRef<HTMLInputElement>(null), supplementary: useRef<HTMLInputElement>(null) };
+  const inputs: Record<Role, React.RefObject<HTMLInputElement>> = {
+    cover: useRef(null), main: useRef(null), video: useRef(null), track: useRef(null), subtitle: useRef(null), supplementary: useRef(null),
+  };
   const update = (i: number, patch: Partial<Job>) => setJobs((js) => js.map((j, k) => (k === i ? { ...j, ...patch } : j)));
 
-  async function send(role: 'cover' | 'main' | 'track' | 'supplementary', list: FileList | null) {
+  async function send(role: Role, list: FileList | null) {
     if (!list?.length) return;
     const chosen = Array.from(list).sort(naturalSort);
     const supabase = createClient();
@@ -87,7 +108,7 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
         }
       }
       const pages = role === 'main' && mime === 'application/pdf' ? await pdfPages(file) : null;
-      const duration = role === 'track' ? await audioDuration(file) : null;
+      const duration = role === 'track' || role === 'video' ? await audioDuration(file) : null;
 
       const bucket = role === 'cover' ? 'covers' : 'materials';
       const path = `${materialId}/${role}/${Date.now()}-${safeName(file.name)}`;
@@ -118,8 +139,10 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
       if (role === 'cover') {
         const { error } = await supabase.from('materials').update({ cover_path: path }).eq('id', materialId);
         if (error) { update(i, { status: 'erro', message: error.message }); continue; }
+        const thumb = await coverThumb(file);
+        if (thumb) await supabase.storage.from('covers').upload(`thumbs/${path}.webp`, thumb, { contentType: 'image/webp', upsert: true });
       } else {
-        const fileRole: FileRole = role;
+        const fileRole: FileRole = role === 'video' ? 'main' : role;
         const { error } = await supabase.from('files').insert({
           material_id: materialId, role: fileRole, bucket, path, mime_type: mime, size_bytes: file.size, sha256: hash,
           original_name: file.name, title: role === 'track' ? file.name.replace(/\.[^.]+$/, '').replace(/^\d+[\s._-]*/, '').trim() || file.name : file.name,
@@ -128,7 +151,8 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
         });
         if (error) { await supabase.storage.from(bucket).remove([path]); update(i, { status: 'erro', message: error.message }); continue; }
         if (pages) await supabase.from('materials').update({ page_count: pages }).eq('id', materialId);
-        if (duration) { totalDuration += duration; await supabase.from('materials').update({ duration_seconds: totalDuration }).eq('id', materialId); }
+        if (duration && role === 'video') await supabase.from('materials').update({ duration_seconds: duration }).eq('id', materialId);
+        else if (duration) { totalDuration += duration; await supabase.from('materials').update({ duration_seconds: totalDuration }).eq('id', materialId); }
       }
       update(i, { status: 'ok', pct: 100, message: pages ? `${pages} páginas` : duration ? formatDuration(duration) : undefined });
     }
@@ -139,6 +163,7 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
 
   const showMain = READ_TYPES.includes(materialType);
   const showTracks = LISTEN_TYPES.includes(materialType);
+  const showVideo = WATCH_TYPES.includes(materialType);
   const listed = files.filter((f) => f.role !== 'cover');
 
   const Picker = ({ role, label, multiple }: { role: keyof typeof LIMITS; label: string; multiple?: boolean }) => (
@@ -161,6 +186,8 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
             <Picker role="cover" label={coverUrl ? 'Trocar capa' : 'Enviar capa'} />
             {showMain ? <Picker role="main" label="Enviar PDF/EPUB principal" /> : null}
             {showTracks ? <Picker role="track" label="Enviar faixas de áudio" multiple /> : null}
+            {showVideo ? <Picker role="video" label="Enviar vídeo (MP4/WebM)" /> : null}
+            {showVideo ? <Picker role="subtitle" label="Legenda (.vtt)" multiple /> : null}
             <Picker role="supplementary" label="Arquivo complementar" multiple />
           </div>
           <small className="muted">Envio retomável: se a conexão cair, escolha o mesmo arquivo de novo para continuar de onde parou. As faixas são ordenadas pelo nome do arquivo.</small>
@@ -188,7 +215,7 @@ export function FileManager({ materialId, materialType, files, coverUrl }: {
             <tbody>{listed.map((f) => (
               <tr key={f.id}>
                 <td style={{ fontWeight: 600 }}>{f.title || f.original_name}</td>
-                <td>{f.role === 'main' ? 'Principal' : f.role === 'track' ? `Faixa ${f.position + 1}` : 'Complementar'}</td>
+                <td>{f.role === 'main' ? 'Principal' : f.role === 'track' ? `Faixa ${f.position + 1}` : f.role === 'subtitle' ? 'Legenda' : 'Complementar'}</td>
                 <td className="muted">{f.duration_seconds ? formatDuration(f.duration_seconds) : ''}{f.size_bytes ? ` · ${(f.size_bytes / 1048576).toFixed(1)} MB` : ''}</td>
                 <td style={{ color: !f.path ? 'var(--gold-ink)' : f.processing_status === 'failed' ? 'var(--danger)' : 'var(--emerald)', fontWeight: 700 }}>
                   {!f.path ? 'Aguardando envio' : f.processing_status === 'failed' ? `Falha: ${f.processing_error ?? ''}` : 'Enviado'}

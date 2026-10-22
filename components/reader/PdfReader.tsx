@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { createClient } from '@/lib/supabase/client';
+import { getOfflineFile } from '@/lib/offline';
 import { Icon } from '../Icon';
+import { NotesPanel, useReaderNotes } from './notes';
+import { OfflineButton } from './OfflineButton';
 import styles from './reader.module.css';
 
 type Fit = 'width' | 'page' | 'custom';
@@ -16,6 +19,7 @@ export function PdfReader(props: {
   fileId: string; materialId: string; slug: string; title: string; initialPage: number; canSave: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const textLayer = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
   const doc = useRef<PDFDocumentProxy | null>(null);
@@ -30,7 +34,9 @@ export function PdfReader(props: {
   const [fit, setFit] = useState<Fit>('width');
   const [zoom, setZoom] = useState(1);
   const [theme, setTheme] = useState<Theme>('claro');
-  const [panel, setPanel] = useState<'none' | 'toc' | 'search'>('none');
+  const [panel, setPanel] = useState<'none' | 'toc' | 'search' | 'notes'>('none');
+  const [quote, setQuote] = useState('');
+  const notes = useReaderNotes(props.materialId, props.canSave);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<Hit[] | null>(null);
@@ -49,10 +55,17 @@ export function PdfReader(props: {
       try {
         const pdfjs = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-        const res = await fetch(`/api/files/${props.fileId}`, { cache: 'no-store' });
-        if (!res.ok) throw new Error(res.status === 403 ? 'Você não tem permissão para ler este material.' : 'Arquivo indisponível.');
-        const { url } = await res.json();
-        const pdf = await pdfjs.getDocument({ url, disableAutoFetch: false, isEvalSupported: false }).promise;
+        // Cópia guardada no aparelho (leitura sem internet) tem prioridade
+        const saved = await getOfflineFile(props.fileId);
+        let source: { url: string } | { data: Uint8Array };
+        if (saved) source = { data: new Uint8Array(saved) };
+        else {
+          const res = await fetch(`/api/files/${props.fileId}`, { cache: 'no-store' }).catch(() => null);
+          if (!res) throw new Error('Sem conexão. Este material não foi salvo para leitura offline.');
+          if (!res.ok) throw new Error(res.status === 403 ? 'Você não tem permissão para ler este material.' : 'Arquivo indisponível.');
+          source = { url: (await res.json()).url };
+        }
+        const pdf = await pdfjs.getDocument({ ...source, disableAutoFetch: false, isEvalSupported: false }).promise;
         if (cancelled) return;
         doc.current = pdf;
         setPages(pdf.numPages);
@@ -104,6 +117,16 @@ export function PdfReader(props: {
     const t = p.render({ canvasContext: ctx, viewport, transform: ratio !== 1 ? [ratio, 0, 0, ratio, 0, 0] : undefined });
     task.current = t;
     try { await t.promise; } catch { /* render cancelado */ }
+    // Camada de texto invisível por cima da página: permite selecionar e citar trechos
+    const layer = textLayer.current;
+    if (layer) {
+      layer.replaceChildren();
+      layer.style.setProperty('--scale-factor', String(viewport.scale));
+      try {
+        const { TextLayer } = await import('pdfjs-dist');
+        await new TextLayer({ textContentSource: p.streamTextContent(), container: layer, viewport }).render();
+      } catch { /* PDF escaneado sem texto */ }
+    }
     if (fit !== 'custom') setZoom(scale);
   }, [page, fit, zoom]);
 
@@ -152,6 +175,11 @@ export function PdfReader(props: {
     setSearching(false);
   }
 
+  function openNotes() {
+    setQuote(window.getSelection()?.toString().trim() ?? '');
+    setPanel(panel === 'notes' ? 'none' : 'notes');
+  }
+
   function fullscreen() {
     const el = shell.current;
     if (!el) return;
@@ -187,13 +215,22 @@ export function PdfReader(props: {
               aria-label={`Modo ${t === 'sepia' ? 'sépia' : t}`} onClick={() => setTheme(t)}>Aa</button>
           ))}
         </div>
+        <button type="button" className={styles.ib} aria-pressed={notes.isMarked(String(page))} disabled={!props.canSave || status !== 'ready'}
+          aria-label={notes.isMarked(String(page)) ? 'Remover marcador desta página' : 'Marcar esta página'}
+          onClick={() => void notes.toggleBookmark(String(page), `Página ${page}`)}><Icon name="bookmark" /></button>
+        <button type="button" className={styles.ib} aria-pressed={panel === 'notes'} aria-label="Marcadores e anotações"
+          onMouseDown={(e) => e.preventDefault()} onClick={openNotes}><Icon name="note" /></button>
+        <OfflineButton fileId={props.fileId} materialId={props.materialId} slug={props.slug} title={props.title} kind="pdf" />
         <button type="button" className={styles.ib} onClick={fullscreen} aria-label="Tela cheia"><Icon name="expand" /></button>
       </header>
 
       <div className={styles.body}>
         {panel !== 'none' ? (
-          <aside className={styles.panel} aria-label={panel === 'toc' ? 'Sumário' : 'Busca'}>
-            {panel === 'toc' ? (
+          <aside className={styles.panel} aria-label={panel === 'toc' ? 'Sumário' : panel === 'notes' ? 'Marcadores e anotações' : 'Busca'}>
+            {panel === 'notes' ? (
+              <NotesPanel api={notes} location={String(page)} describe={(l) => `página ${l}`} initialQuote={quote} canSave={props.canSave}
+                onGo={(l) => go(Number(l))} />
+            ) : panel === 'toc' ? (
               outline.length ? (
                 <ol>{outline.map((o, i) => (
                   <li key={i}><button type="button" disabled={!o.page} style={{ paddingLeft: 12 + o.depth * 14 }}
@@ -227,7 +264,10 @@ export function PdfReader(props: {
           }}>
           {status === 'loading' ? <p className={styles.note} role="status">Abrindo o documento…</p> : null}
           {status === 'error' ? <p className={styles.note} role="alert">{error}</p> : null}
-          <canvas ref={canvas} className={styles.canvas} hidden={status !== 'ready'} aria-label={`Página ${page} de ${props.title}`} />
+          <div className={styles.pageWrap} hidden={status !== 'ready'}>
+            <canvas ref={canvas} className={styles.canvas} aria-label={`Página ${page} de ${props.title}`} />
+            <div ref={textLayer} className={styles.textLayer} />
+          </div>
         </div>
       </div>
 

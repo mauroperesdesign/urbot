@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Icon } from './Icon';
-import { signOut } from '@/app/(auth)/actions';
+import { SignOutButton } from './SignOutButton';
 
 type NavItem = { href: string; label: string; icon: string };
 
@@ -12,6 +12,7 @@ const MAIN: NavItem[] = [
   { href: '/acervo', label: 'Acervo', icon: 'grid' },
   { href: '/minha-biblioteca', label: 'Minha biblioteca', icon: 'library' },
   { href: '/acervo?tipo=audiobook', label: 'Audiobooks', icon: 'headphones' },
+  { href: '/listas', label: 'Minhas listas', icon: 'list' },
   { href: '/minha-biblioteca#favoritos', label: 'Favoritos', icon: 'heart' },
 ];
 
@@ -48,9 +49,7 @@ export function SideNav({ staff, signedIn }: { staff: boolean; signedIn: boolean
       <nav aria-label="Conta" className="side-nav">
         {extra.map(item)}
         {signedIn ? (
-          <form action={signOut}>
-            <button type="submit"><span className="ico"><Icon name="logout" size={18} /></span>Sair</button>
-          </form>
+          <SignOutButton />
         ) : (
           <Link href="/entrar"><span className="ico"><Icon name="login" size={18} /></span>Entrar</Link>
         )}

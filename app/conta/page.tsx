@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { revalidatePath } from 'next/cache';
 import { requireUser } from '@/lib/data';
-import { signOut } from '../(auth)/actions';
+import { SignOutButton } from '@/components/SignOutButton';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Conta', robots: { index: false } };
@@ -26,7 +26,7 @@ export default async function Account() {
           <button className="btn btn-primary" type="submit" style={{ alignSelf: 'flex-start' }}>Salvar</button>
         </form>
         <p className="muted" style={{ fontSize: 13, margin: 0 }}>Seu progresso, favoritos e anotações são privados: só você vê.</p>
-        <form action={signOut}><button className="btn" type="submit">Sair</button></form>
+        <div><SignOutButton variant="button" /></div>
       </div>
     </div>
   );

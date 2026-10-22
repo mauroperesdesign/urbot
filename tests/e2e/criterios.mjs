@@ -211,7 +211,7 @@ await check(12, 'Materiais restritos não são acessados sem permissão', async 
   const membro = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const m = await login(membro, 'membro@teste.local');
   await m.goto(`${BASE}/ler/${RESTRICTED}`);
-  await m.getByText(/página 1 de 169/).waitFor({ timeout: 30000 });
+  await m.getByText(/página \d+ de 169/).waitFor({ timeout: 30000 });
   await shot(m, 'mobile-leitor');
   await m.goto(`${BASE}/`);
   await shot(m, 'mobile-inicio');

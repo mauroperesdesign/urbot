@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireStaff, withCoverUrls } from '@/lib/data';
 import { MaterialForm } from './MaterialForm';
 import { FileManager } from './FileManager';
+import { CourseEditor } from './CourseEditor';
 import type { Category, FileRow, Material } from '@/lib/types';
 import { deleteMaterial } from '../../actions';
 import { DeleteButton } from '@/components/admin/Confirm';
@@ -36,7 +37,7 @@ export default async function EditMaterial({ params, searchParams }: { params: {
     selected = (mc.data ?? []).map((c) => c.category_id);
     authors = (ma.data ?? []).map((a) => (a.authors as unknown as { name: string } | null)?.name).filter(Boolean).join('\n');
     files = (fl.data ?? []) as FileRow[];
-    [{ coverUrl }] = await withCoverUrls([{ cover_path: material!.cover_path }]);
+    [{ coverUrl }] = await withCoverUrls([{ cover_path: material!.cover_path }], { full: true });
   }
 
   return (
@@ -50,6 +51,7 @@ export default async function EditMaterial({ params, searchParams }: { params: {
       </div>
       {searchParams.criado ? <p className="alert alert-ok">Material criado como rascunho. Agora envie a capa e os arquivos.</p> : null}
       {!isNew ? <FileManager materialId={material!.id} materialType={material!.type} files={files} coverUrl={coverUrl} /> : null}
+      {!isNew && material!.type === 'course' ? <CourseEditor courseId={material!.id} /> : null}
       <MaterialForm material={material} internal={internal} categories={categories} selected={selected} authors={authors} />
       {!isNew && profile?.role === 'admin' ? (
         <form action={deleteMaterial} className="card stack" style={{ padding: 18, borderColor: 'color-mix(in srgb, var(--danger) 35%, var(--line))' }}>

@@ -7,3 +7,4 @@ source "$(dirname "$0")/lib.sh"
 cd "$APP"
 set -a; . "$SECRETS"; set +a
 sudo -E -u biblioteca node scripts/import-acervo.mjs "$@"
+sudo -E -u biblioteca node scripts/gerar-miniaturas.mjs || true

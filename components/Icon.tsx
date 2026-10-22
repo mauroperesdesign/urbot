@@ -27,6 +27,13 @@ const PATHS: Record<string, string> = {
   filter: 'M4 6h16M7 12h10M10 18h4',
   moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',
   sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  offline: 'M12 4v10M8 10l4 4 4-4M5 19h14',
+  note: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  check: 'M5 12l5 5 9-10',
+  play: 'M8 5v14l11-7z',
+  video: 'M4 6h11v12H4zM15 10l5-3v10l-5-3',
+  chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
   timer: 'M12 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 9v4l2.5 2M9 2h6',
 };
 

@@ -91,7 +91,7 @@ export function HomeBrowser({ items, roots, continuing, pendingApproval }: {
           <section className="panel" aria-labelledby="h-cont">
             <div className="panel-head"><h2 id="h-cont">Continue de onde parou</h2><Link className="pill-link" href="/minha-biblioteca">Ver tudo <Icon name="next" size={14} /></Link></div>
             <div className="shelf">
-              {continuing.map((m) => <Card key={m.id} m={m} href={m.href} percent={m.percent} sub={m.percent != null ? `${Math.round(m.percent)}% concluído` : 'Em andamento'} />)}
+              {continuing.map((m) => <Card key={m.id} m={m} href={m.href} percent={m.percent} sub={m.percent != null ? `${Math.round(m.percent)}% concluído` : m.type === 'audiobook' || m.type === 'audio' ? 'Continuar ouvindo' : m.type === 'video' || m.type === 'video_lesson' ? 'Continuar assistindo' : 'Em andamento'} />)}
             </div>
           </section>
         ) : null}

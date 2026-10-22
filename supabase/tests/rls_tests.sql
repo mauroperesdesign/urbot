@@ -129,4 +129,53 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== cursos, listas, miniaturas e estatísticas'
+insert into public.materials (id, slug, title, type, status, visibility, publication_authorized) values
+  ('10000000-0000-0000-0000-000000000004', 'curso', 'Curso restrito', 'course', 'published', 'restricted', true);
+insert into public.course_items (course_id, material_id, position) values
+  ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 0);
+insert into public.collections (id, user_id, name) values ('40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', 'Lista do membro');
+insert into storage.objects (bucket_id, name) values ('covers', 'thumbs/p.jpg.webp'), ('covers', 'thumbs/r.jpg.webp');
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert (select count(*) from public.course_items) = 0, 'anônimo não vê aulas de curso restrito';
+  assert (select count(*) from storage.objects where name like 'thumbs/%') = 1, 'anônimo vê só a miniatura pública';
+  assert public.t_expect_error($q$select public.admin_stats(30)$q$), 'anônimo não lê estatísticas';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  assert (select count(*) from public.course_items) = 0, 'não aprovado não vê aulas de curso restrito';
+  assert (select count(*) from public.collections) = 0, 'não vê listas de outra pessoa';
+  assert public.t_expect_error($q$insert into public.collection_items (collection_id, material_id) values ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001')$q$), 'não mexe em lista alheia';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  assert (select count(*) from public.course_items) = 1, 'membro aprovado vê as aulas';
+  assert (select count(*) from storage.objects where name like 'thumbs/%') = 2, 'membro vê as miniaturas que pode ver';
+  assert public.t_expect_error($q$insert into public.course_items (course_id, material_id) values ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001')$q$), 'membro não monta curso';
+  assert public.t_expect_error($q$select public.admin_stats(30)$q$), 'membro não lê estatísticas';
+  insert into public.collection_items (collection_id, material_id) values ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002');
+  assert public.t_expect_error($q$insert into public.collection_items (collection_id, material_id) values ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003')$q$), 'não põe rascunho na lista';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+do $$ declare st jsonb; begin
+  st := public.admin_stats(30);
+  assert (st->>'published')::int = 3, 'estatísticas contam publicados';
+  assert (st->>'approved')::int = 2, 'estatísticas contam aprovados';
+  insert into public.course_items (course_id, material_id, position) values ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 1);
+  assert public.t_expect_error($q$insert into public.course_items (course_id, material_id) values ('10000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004')$q$), 'curso não contém a si mesmo';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'
