@@ -37,6 +37,7 @@ export function PdfReader(props: {
   const [theme, setTheme] = useState<Theme>('claro');
   const [panel, setPanel] = useState<'none' | 'toc' | 'search' | 'notes'>('none');
   const [quote, setQuote] = useState('');
+  const [tools, setTools] = useState(false); // opções extras da barra (no celular ficam recolhidas)
   const notes = useReaderNotes(props.materialId, props.canSave);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [query, setQuery] = useState('');
@@ -132,6 +133,8 @@ export function PdfReader(props: {
   }, [page, fit, customZoom]);
 
   useEffect(() => { if (status === 'ready') void render(); }, [status, render]);
+  // O painel muda o espaço da página (gaveta no celular, coluna no computador)
+  useEffect(() => { if (status === 'ready' && fit !== 'custom') void render(); }, [panel]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const onResize = () => { if (status === 'ready' && fit !== 'custom') void render(); };
     window.addEventListener('resize', onResize);
@@ -198,36 +201,45 @@ export function PdfReader(props: {
     <div ref={shell} className={`${styles.shell} ${styles[theme]}`} onKeyDown={onKey}>
       <header className={styles.bar}>
         <Link href={`/material/${props.slug}`} className={styles.ib} aria-label="Voltar ao material"><Icon name="back" /></Link>
-        <button type="button" className={styles.tb} aria-pressed={panel === 'toc'} onClick={() => setPanel(panel === 'toc' ? 'none' : 'toc')}>Sumário</button>
+        <button type="button" className={styles.tb} aria-pressed={panel === 'toc'} aria-label="Sumário" onClick={() => setPanel(panel === 'toc' ? 'none' : 'toc')}>
+          <Icon name="list" size={18} /><span className={styles.lbl}>Sumário</span>
+        </button>
         <button type="button" className={styles.ib} aria-label="Buscar no documento" aria-pressed={panel === 'search'} onClick={() => setPanel(panel === 'search' ? 'none' : 'search')}><Icon name="search" /></button>
         <div className={styles.title}><b>{props.title}</b><span>{pages ? `página ${page} de ${pages}` : 'carregando…'}</span></div>
-        <div className={styles.group} role="group" aria-label="Zoom">
-          <button type="button" className={styles.ib} onClick={() => zoomBy(1 / 1.2)} aria-label="Diminuir zoom"><Icon name="zoomOut" /></button>
-          <span className={styles.zoom}>{Math.round(zoom * 100)}%</span>
-          <button type="button" className={styles.ib} onClick={() => zoomBy(1.2)} aria-label="Aumentar zoom"><Icon name="zoomIn" /></button>
-        </div>
-        <div className={styles.group} role="group" aria-label="Ajuste">
-          <button type="button" className={styles.tb} aria-pressed={fit === 'width'} onClick={() => setFit('width')}>Largura</button>
-          <button type="button" className={styles.tb} aria-pressed={fit === 'page'} onClick={() => setFit('page')}>Página</button>
-        </div>
-        <div className={styles.group} role="group" aria-label="Modo de leitura">
-          {(['claro', 'sepia', 'escuro'] as Theme[]).map((t) => (
-            <button key={t} type="button" className={`${styles.swatch} ${styles['sw_' + t]}`} aria-pressed={theme === t}
-              aria-label={`Modo ${t === 'sepia' ? 'sépia' : t}`} onClick={() => setTheme(t)}>Aa</button>
-          ))}
-        </div>
         <button type="button" className={styles.ib} aria-pressed={notes.isMarked(String(page))} disabled={!props.canSave || status !== 'ready'}
           aria-label={notes.isMarked(String(page)) ? 'Remover marcador desta página' : 'Marcar esta página'}
           onClick={() => void notes.toggleBookmark(String(page), `Página ${page}`)}><Icon name="bookmark" /></button>
         <button type="button" className={styles.ib} aria-pressed={panel === 'notes'} aria-label="Marcadores e anotações"
           onMouseDown={(e) => e.preventDefault()} onClick={openNotes}><Icon name="note" /></button>
-        <OfflineButton fileId={props.fileId} materialId={props.materialId} slug={props.slug} title={props.title} kind="pdf" />
-        <button type="button" className={styles.ib} onClick={fullscreen} aria-label="Tela cheia"><Icon name="expand" /></button>
+        <button type="button" className={`${styles.ib} ${styles.moreBtn}`} aria-expanded={tools} aria-label="Mais opções de leitura" onClick={() => setTools(!tools)}>⋯</button>
+        <div className={styles.more} data-open={tools}>
+          <div className={styles.group} role="group" aria-label="Zoom">
+            <button type="button" className={styles.ib} onClick={() => zoomBy(1 / 1.2)} aria-label="Diminuir zoom"><Icon name="zoomOut" /></button>
+            <span className={styles.zoom}>{Math.round(zoom * 100)}%</span>
+            <button type="button" className={styles.ib} onClick={() => zoomBy(1.2)} aria-label="Aumentar zoom"><Icon name="zoomIn" /></button>
+          </div>
+          <div className={styles.group} role="group" aria-label="Ajuste">
+            <button type="button" className={styles.tb} aria-pressed={fit === 'width'} onClick={() => setFit('width')}>Largura</button>
+            <button type="button" className={styles.tb} aria-pressed={fit === 'page'} onClick={() => setFit('page')}>Página</button>
+          </div>
+          <div className={styles.group} role="group" aria-label="Modo de leitura">
+            {(['claro', 'sepia', 'escuro'] as Theme[]).map((t) => (
+              <button key={t} type="button" className={`${styles.swatch} ${styles['sw_' + t]}`} aria-pressed={theme === t}
+                aria-label={`Modo ${t === 'sepia' ? 'sépia' : t}`} onClick={() => setTheme(t)}>Aa</button>
+            ))}
+          </div>
+          <OfflineButton fileId={props.fileId} materialId={props.materialId} slug={props.slug} title={props.title} kind="pdf" />
+          <button type="button" className={styles.ib} onClick={fullscreen} aria-label="Tela cheia"><Icon name="expand" /></button>
+        </div>
       </header>
 
       <div className={styles.body}>
         {panel !== 'none' ? (
           <aside className={styles.panel} aria-label={panel === 'toc' ? 'Sumário' : panel === 'notes' ? 'Marcadores e anotações' : 'Busca'}>
+            <div className={styles.panelHead}>
+              <b>{panel === 'toc' ? 'Sumário' : panel === 'notes' ? 'Marcadores e anotações' : 'Buscar no documento'}</b>
+              <button type="button" className={styles.ib} onClick={() => setPanel('none')} aria-label="Fechar painel">✕</button>
+            </div>
             {panel === 'notes' ? (
               <NotesPanel api={notes} location={String(page)} describe={(l) => `página ${l}`} initialQuote={quote} canSave={props.canSave}
                 onGo={(l) => go(Number(l))} />

@@ -42,6 +42,7 @@ export function EpubReader(props: {
   const [hits, setHits] = useState<Hit[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [quote, setQuote] = useState('');
+  const [tools, setTools] = useState(false);
   const notes = useReaderNotes(props.materialId, props.canSave);
 
   useEffect(() => {
@@ -134,6 +135,13 @@ export function EpubReader(props: {
     return () => clearTimeout(saveTimer.current);
   }, [cfi, percent, status, props.canSave, props.materialId]);
 
+  // O painel muda o espaço do texto: o livro é repaginado
+  useEffect(() => {
+    if (status !== 'ready') return;
+    const t = setTimeout(() => { try { const el = stage.current; if (el) rendition.current?.resize(el.clientWidth, el.clientHeight); } catch { /* ainda carregando */ } }, 60);
+    return () => clearTimeout(t);
+  }, [panel, status]);
+
   const go = (target: string) => { void rendition.current?.display(target); };
   const describe = (loc: string) => (locationsReady && book.current ? `${Math.round(book.current.locations.percentageFromCfi(loc) * 100)}% do livro` : 'trecho marcado');
 
@@ -168,32 +176,41 @@ export function EpubReader(props: {
     <div ref={shell} className={`${styles.shell} ${styles[theme]}`}>
       <header className={styles.bar}>
         <Link href={`/material/${props.slug}`} className={styles.ib} aria-label="Voltar ao material"><Icon name="back" /></Link>
-        <button type="button" className={styles.tb} aria-pressed={panel === 'toc'} onClick={() => setPanel(panel === 'toc' ? 'none' : 'toc')}>Sumário</button>
+        <button type="button" className={styles.tb} aria-pressed={panel === 'toc'} aria-label="Sumário" onClick={() => setPanel(panel === 'toc' ? 'none' : 'toc')}>
+          <Icon name="list" size={18} /><span className={styles.lbl}>Sumário</span>
+        </button>
         <button type="button" className={styles.ib} aria-label="Buscar no livro" aria-pressed={panel === 'search'} onClick={() => setPanel(panel === 'search' ? 'none' : 'search')}><Icon name="search" /></button>
         <div className={styles.title}><b>{props.title}</b><span>{status !== 'ready' ? 'carregando…' : pct != null ? `${pct}% lido` : 'calculando posição…'}</span></div>
-        <div className={styles.group} role="group" aria-label="Tamanho da letra">
-          <button type="button" className={styles.ib} onClick={() => setSize((s) => Math.max(70, s - 10))} aria-label="Diminuir letra"><small>A</small></button>
-          <span className={styles.zoom}>{size}%</span>
-          <button type="button" className={styles.ib} onClick={() => setSize((s) => Math.min(200, s + 10))} aria-label="Aumentar letra"><b>A</b></button>
-        </div>
-        <div className={styles.group} role="group" aria-label="Modo de leitura">
-          {(['claro', 'sepia', 'escuro'] as Theme[]).map((t) => (
-            <button key={t} type="button" className={`${styles.swatch} ${styles['sw_' + t]}`} aria-pressed={theme === t}
-              aria-label={`Modo ${t === 'sepia' ? 'sépia' : t}`} onClick={() => setTheme(t)}>Aa</button>
-          ))}
-        </div>
         <button type="button" className={styles.ib} aria-pressed={notes.isMarked(cfi)} disabled={!props.canSave || status !== 'ready'}
           aria-label={notes.isMarked(cfi) ? 'Remover marcador' : 'Marcar este ponto'}
           onClick={() => void notes.toggleBookmark(cfi, pct != null ? `${pct}% do livro` : 'Marcador')}><Icon name="bookmark" /></button>
         <button type="button" className={styles.ib} aria-pressed={panel === 'notes'} aria-label="Marcadores e anotações"
           onClick={() => { setQuote(selection.current); setPanel(panel === 'notes' ? 'none' : 'notes'); }}><Icon name="note" /></button>
-        <OfflineButton fileId={props.fileId} materialId={props.materialId} slug={props.slug} title={props.title} kind="epub" />
-        <button type="button" className={styles.ib} onClick={fullscreen} aria-label="Tela cheia"><Icon name="expand" /></button>
+        <button type="button" className={`${styles.ib} ${styles.moreBtn}`} aria-expanded={tools} aria-label="Mais opções de leitura" onClick={() => setTools(!tools)}>⋯</button>
+        <div className={styles.more} data-open={tools}>
+          <div className={styles.group} role="group" aria-label="Tamanho da letra">
+            <button type="button" className={styles.ib} onClick={() => setSize((v) => Math.max(70, v - 10))} aria-label="Diminuir letra"><small>A</small></button>
+            <span className={styles.zoom}>{size}%</span>
+            <button type="button" className={styles.ib} onClick={() => setSize((v) => Math.min(200, v + 10))} aria-label="Aumentar letra"><b>A</b></button>
+          </div>
+          <div className={styles.group} role="group" aria-label="Modo de leitura">
+            {(['claro', 'sepia', 'escuro'] as Theme[]).map((t) => (
+              <button key={t} type="button" className={`${styles.swatch} ${styles['sw_' + t]}`} aria-pressed={theme === t}
+                aria-label={`Modo ${t === 'sepia' ? 'sépia' : t}`} onClick={() => setTheme(t)}>Aa</button>
+            ))}
+          </div>
+          <OfflineButton fileId={props.fileId} materialId={props.materialId} slug={props.slug} title={props.title} kind="epub" />
+          <button type="button" className={styles.ib} onClick={fullscreen} aria-label="Tela cheia"><Icon name="expand" /></button>
+        </div>
       </header>
 
       <div className={styles.body}>
         {panel !== 'none' ? (
           <aside className={styles.panel} aria-label={panel === 'toc' ? 'Sumário' : panel === 'notes' ? 'Marcadores e anotações' : 'Busca'}>
+            <div className={styles.panelHead}>
+              <b>{panel === 'toc' ? 'Sumário' : panel === 'notes' ? 'Marcadores e anotações' : 'Buscar no livro'}</b>
+              <button type="button" className={styles.ib} onClick={() => setPanel('none')} aria-label="Fechar painel">✕</button>
+            </div>
             {panel === 'notes' ? (
               <NotesPanel api={notes} location={cfi} describe={describe} initialQuote={quote} canSave={props.canSave} onGo={go} />
             ) : panel === 'toc' ? (
