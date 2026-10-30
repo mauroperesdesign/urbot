@@ -467,4 +467,4 @@ table.data td { padding: 10px 8px; border-top: 1px solid var(--line); vertical-a
 .cal-holy-card em { color: var(--ink); font-weight: 600; }
 .cal-event { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
 .cal-event p { margin: 2px 0 0; font-size: 13px; color: var(--muted); white-space: pre-line; }
-#dia, #lendo, #ouvindo, #caderno, #favoritos { scroll-margin-top: 120px; }
+#dia, #sincronizar, #lendo, #ouvindo, #caderno, #favoritos { scroll-margin-top: 120px; }

@@ -244,4 +244,37 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== sincronizar agenda (link de calendário)'
+insert into public.calendar_feeds (user_id, token) values ('00000000-0000-0000-0000-00000000000c', repeat('c', 64));
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ declare t text; t2 text; begin
+  assert (select count(*) from public.calendar_feeds) = 0, 'não vê o link de outra pessoa';
+  assert public.t_expect_error($q$insert into public.calendar_feeds (user_id, token) values (auth.uid(), repeat('a', 64))$q$), 'não escolhe o próprio token';
+  insert into public.agenda_events (user_id, day, title) values (auth.uid(), current_date, 'Gira de teste');
+  t := public.rotate_calendar_feed();
+  assert length(t) = 64, 'token longo';
+  assert (public.calendar_feed(t)->'events'->0->>'title') = 'Gira de teste', 'link traz os próprios compromissos';
+  assert json_array_length(public.calendar_feed(t)->'events') = 1, 'link não traz compromissos de outra pessoa';
+  t2 := public.rotate_calendar_feed();
+  assert public.calendar_feed(t) is null, 'link antigo para de funcionar';
+  assert public.calendar_feed(t2) is not null, 'link novo funciona';
+  delete from public.calendar_feeds;
+  assert public.calendar_feed(t2) is null, 'desligar apaga o link';
+end $$;
+rollback;
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert json_array_length(public.calendar_feed(repeat('c', 64))->'events') = 1, 'app de calendário lê pelo token';
+  assert json_array_length(public.calendar_feed(repeat('c', 64))->'holy') > 0, 'link traz as datas da religião';
+  assert public.calendar_feed(repeat('d', 64)) is null, 'token errado não traz nada';
+  assert public.calendar_feed('') is null, 'token vazio não traz nada';
+  assert (select count(*) from public.calendar_feeds) = 0, 'visitante não lista links';
+  assert public.t_expect_error($q$select public.rotate_calendar_feed()$q$), 'visitante não cria link';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

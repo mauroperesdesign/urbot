@@ -2,7 +2,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { requireUser } from '@/lib/data';
 import { ConfirmButton } from '@/components/ConfirmButton';
-import { addEvent, deleteEvent } from './actions';
+import { headers } from 'next/headers';
+import { addEvent, deleteEvent, removeFeed, rotateFeed } from './actions';
+import { SyncLinks } from './SyncLinks';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Agenda', robots: { index: false } };
@@ -21,14 +23,18 @@ type Ev = { id: string; day: string; title: string; notes: string | null };
 
 export default async function Agenda({ searchParams }: { searchParams: { ano?: string; dia?: string } }) {
   const { supabase } = await requireUser('/agenda');
+  const h0 = headers();
+  const site = process.env.NEXT_PUBLIC_SITE_URL || `${h0.get('x-forwarded-proto') ?? 'http'}://${h0.get('host')}`;
   const today = todayIso();
   const year = Number(searchParams.ano) >= 1900 && Number(searchParams.ano) <= 2200 ? Number(searchParams.ano) : Number(today.slice(0, 4));
   const selected = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.dia ?? '') && searchParams.dia!.startsWith(String(year)) ? searchParams.dia! : (today.startsWith(String(year)) ? today : `${year}-01-01`);
 
-  const [{ data: holyData }, { data: evData }] = await Promise.all([
+  const [{ data: holyData }, { data: evData }, { data: feed }] = await Promise.all([
     supabase.from('calendar_dates').select('month, day, title, description, greeting').order('month').order('day'),
     supabase.from('agenda_events').select('id, day, title, notes').gte('day', `${year}-01-01`).lte('day', `${year}-12-31`).order('day').order('created_at'),
+    supabase.from('calendar_feeds').select('token').maybeSingle(),
   ]);
+  const feedUrl = feed?.token ? `${site.replace(/\/$/, '')}/api/agenda/${feed.token}.ics` : null;
   const holy = (holyData ?? []) as Holy[];
   const events = (evData ?? []) as Ev[];
   const holyOn = (m: number, d: number) => holy.filter((h) => h.month === m && h.day === d);
@@ -122,6 +128,27 @@ export default async function Agenda({ searchParams }: { searchParams: { ano?: s
               <label className="field">Observações (opcional)<textarea name="notes" maxLength={2000} rows={2} style={{ minHeight: 60 }} /></label>
               <button className="btn btn-primary" type="submit" style={{ alignSelf: 'flex-start' }}>Adicionar</button>
             </form>
+          </section>
+
+          <section className="panel stack" id="sincronizar" aria-labelledby="h-sync">
+            <h2 id="h-sync" style={{ fontSize: 17 }}>Vincular ao seu calendário</h2>
+            <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>
+              Seus compromissos e as datas da religião aparecem no Google Agenda ou no Calendário do iPhone, e se atualizam sozinhos.
+            </p>
+            {feedUrl ? (
+              <>
+                <SyncLinks https={feedUrl} />
+                <small className="muted">
+                  O link é pessoal: quem tiver ele vê a sua agenda. Os apps buscam novidades de tempos em tempos (o Google pode levar algumas horas).
+                </small>
+                <div className="row">
+                  <form action={rotateFeed}><ConfirmButton className="btn btn-ghost" message="Gerar um novo link? O link atual para de funcionar e será preciso vincular de novo.">Gerar novo link</ConfirmButton></form>
+                  <form action={removeFeed}><ConfirmButton className="btn btn-ghost btn-danger" message="Desligar a sincronização? Os calendários vinculados param de receber a agenda.">Desligar</ConfirmButton></form>
+                </div>
+              </>
+            ) : (
+              <form action={rotateFeed}><button className="btn btn-primary" type="submit">Criar link de sincronização</button></form>
+            )}
           </section>
 
           <section className="panel stack" aria-labelledby="h-prox">

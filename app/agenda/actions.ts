@@ -25,3 +25,18 @@ export async function deleteEvent(form: FormData) {
   revalidatePath('/agenda');
   redirect(`/agenda?ano=${day.slice(0, 4)}&dia=${day}#dia`);
 }
+
+// Link de sincronização com Google Agenda / Calendário do iPhone
+export async function rotateFeed() {
+  const { supabase } = await requireUser('/agenda');
+  await supabase.rpc('rotate_calendar_feed');
+  revalidatePath('/agenda');
+  redirect('/agenda#sincronizar');
+}
+
+export async function removeFeed() {
+  const { supabase, user } = await requireUser('/agenda');
+  await supabase.from('calendar_feeds').delete().eq('user_id', user.id);
+  revalidatePath('/agenda');
+  redirect('/agenda#sincronizar');
+}

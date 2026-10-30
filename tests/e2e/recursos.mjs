@@ -290,6 +290,34 @@ try {
     await sb.from('agenda_events').delete().eq('user_id', member.id).like('title', `%${run}`);
   });
 
+  await check('Agenda: link para Google Agenda / iPhone (.ics) traz compromissos e datas, e pode ser trocado', async () => {
+    const day = new Date().toISOString().slice(0, 10);
+    await sb.from('agenda_events').insert({ user_id: member.id, day, title: `Sync E2E, ${run}; teste` });
+    await page.goto(`${BASE}/agenda#sincronizar`);
+    if (await page.locator('#sincronizar button:has-text("Desligar")').count()) {
+      page.once('dialog', (d) => d.accept());
+      await page.click('#sincronizar button:has-text("Desligar")');
+      await page.locator('#sincronizar button:has-text("Criar link")').waitFor();
+    }
+    await page.click('#sincronizar button:has-text("Criar link")');
+    const link = await page.locator('#sincronizar input[readonly]').inputValue();
+    assert(/\/api\/agenda\/[a-f0-9]{64}\.ics$/.test(link), `link estranho: ${link}`);
+    assert((await page.locator('#sincronizar a:has-text("iPhone")').getAttribute('href')).startsWith('webcal://'), 'sem webcal');
+    assert((await page.locator('#sincronizar a:has-text("Google")').getAttribute('href')).includes('calendar.google.com/calendar/render?cid=webcal'), 'sem Google');
+    const ics = await (await fetch(link)).text(); // sem sessão, como um app de calendário
+    assert(ics.startsWith('BEGIN:VCALENDAR') && ics.includes(`SUMMARY:Sync E2E\\, ${run}\\; teste`), 'compromisso ausente no .ics');
+    assert(ics.includes('SUMMARY:Dia Nacional da Umbanda') && ics.includes('RRULE:FREQ=YEARLY'), 'datas da religião ausentes');
+    assert(ics.split('\r\n').every((l) => Buffer.byteLength(l) <= 75), 'linha longa demais no .ics');
+    page.once('dialog', (d) => d.accept());
+    await page.click('#sincronizar button:has-text("Gerar novo link")');
+    await page.waitForFunction((old) => { const v = document.querySelector('#sincronizar input[readonly]')?.value; return !!v && v !== old; }, link);
+    assert((await fetch(link)).status === 404, 'link antigo continua funcionando');
+    page.once('dialog', (d) => d.accept());
+    await page.click('#sincronizar button:has-text("Desligar")');
+    await page.locator('#sincronizar button:has-text("Criar link")').waitFor();
+    await sb.from('agenda_events').delete().eq('user_id', member.id).like('title', `%${run}%`);
+  });
+
   await check('Celular: botão "Menu" abre o menu completo (Pontos cantados, Agenda…)', async () => {
     const mob = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() })).newPage();
     await mob.goto(BASE);
