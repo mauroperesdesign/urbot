@@ -34,6 +34,10 @@ const PATHS: Record<string, string> = {
   video: 'M4 6h11v12H4zM15 10l5-3v10l-5-3',
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+  music: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
+  calendar: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',
+  mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
+  stop: 'M7 7h10v10H7z',
   timer: 'M12 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 9v4l2.5 2M9 2h6',
 };
 

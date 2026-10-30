@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { getSession, isStaff } from '@/lib/data';
 import { supabaseConfigured } from '@/lib/supabase/server';
 import { Icon } from './Icon';
-import { SideNav, TabBar } from './Nav';
+import { SideNav, TabBar, type PontosNav } from './Nav';
 import { ThemeToggle } from './ThemeToggle';
 
 export function currentTheme(): 'light' | 'dark' {
@@ -24,13 +24,26 @@ function Brand() {
   );
 }
 
+async function pontosNav(): Promise<PontosNav> {
+  if (!supabaseConfigured()) return { orixas: [], linhas: [] };
+  const { supabase } = await getSession();
+  const { data } = await supabase.from('categories').select('id, parent_id, slug, name, position').order('position');
+  const all = data ?? [];
+  const kids = (slug: string) => {
+    const parent = all.find((c) => c.slug === slug);
+    return parent ? all.filter((c) => c.parent_id === parent.id).map(({ slug: s, name }) => ({ slug: s, name })) : [];
+  };
+  return { orixas: kids('pontos-cantados-orixas'), linhas: kids('pontos-cantados-linhas') };
+}
+
 export async function Sidebar() {
   const { user, profile } = await session();
+  const pontos = await pontosNav();
   return (
     <aside className="sidebar">
       <Brand />
       <Suspense fallback={null}>
-        <SideNav staff={isStaff(profile)} signedIn={!!user} />
+        <SideNav staff={isStaff(profile)} signedIn={!!user} pontos={pontos} />
       </Suspense>
     </aside>
   );
@@ -38,6 +51,7 @@ export async function Sidebar() {
 
 export async function Topbar() {
   const { user, profile } = await session();
+  const pontos = await pontosNav();
   const name = profile?.display_name || user?.email?.split('@')[0] || '';
   return (
     <>
@@ -51,7 +65,7 @@ export async function Topbar() {
         <div className="topbar-end">
           <ThemeToggle initial={currentTheme()} />
           {user ? (
-            <Link href="/conta" className="user-chip" aria-label="Minha conta">
+            <Link href="/perfil" className="user-chip" aria-label="Meu perfil">
               <span className="avatar">{(name || '?').slice(0, 1).toUpperCase()}</span>
               <span className="name">{name}</span>
               <span className="name muted"><Icon name="chevronDown" size={16} /></span>
@@ -61,7 +75,7 @@ export async function Topbar() {
           )}
         </div>
       </header>
-      <Suspense fallback={null}><TabBar signedIn={!!user} /></Suspense>
+      <Suspense fallback={null}><TabBar signedIn={!!user} staff={isStaff(profile)} pontos={pontos} /></Suspense>
     </>
   );
 }

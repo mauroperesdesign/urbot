@@ -25,6 +25,9 @@ export function PdfReader(props: {
   const doc = useRef<PDFDocumentProxy | null>(null);
   const task = useRef<RenderTask | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const materialRef = useRef(props.materialId);
+  materialRef.current = props.materialId;
+  const pendingSave = useRef<{ location: string; percent: number | null; page: number | null } | null>(null);
   const touchX = useRef<number | null>(null);
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -145,17 +148,41 @@ export function PdfReader(props: {
   useEffect(() => {
     if (!props.canSave || status !== 'ready' || !pages) return;
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from('reading_progress').upsert({
-        user_id: user.id, material_id: props.materialId, location: String(page),
-        percent: Math.round((page / pages) * 10000) / 100, updated_at: new Date().toISOString(),
-      });
-    }, 1200);
+    const entry = { location: String(page), percent: Math.round((page / pages) * 10000) / 100, page };
+    const run = async () => {
+      pendingSave.current = null;
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase.from('reading_progress').upsert({
+          user_id: user.id, material_id: props.materialId, location: entry.location, percent: entry.percent, updated_at: new Date().toISOString(),
+        });
+        // Conta a página como lida (uma vez só por pessoa)
+        await supabase.from('reading_pages').upsert({ user_id: user.id, material_id: props.materialId, page }, { onConflict: 'user_id,material_id,page', ignoreDuplicates: true });
+      } catch { /* sem conexão */ }
+    };
+    pendingSave.current = entry;
+    saveTimer.current = setTimeout(run, 1200);
     return () => clearTimeout(saveTimer.current);
   }, [page, pages, status, props.canSave, props.materialId]);
+
+  // Ao sair do leitor (ou trocar de app no celular), salva na hora o que estava pendente
+  useEffect(() => {
+    const flush = () => {
+      const p = pendingSave.current;
+      if (!p) return;
+      pendingSave.current = null;
+      clearTimeout(saveTimer.current);
+      // sendBeacon chega ao servidor mesmo com a página fechando
+      const body = new Blob([JSON.stringify({ material: materialRef.current, ...p })], { type: 'application/json' });
+      if (!navigator.sendBeacon?.('/api/progresso', body)) void fetch('/api/progresso', { method: 'POST', body, keepalive: true }).catch(() => undefined);
+    };
+    const onHide = () => { if (document.visibilityState === 'hidden') flush(); };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', flush);
+    return () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', flush); flush(); };
+  }, []);
 
   const go = (n: number) => setPage((p) => Math.min(Math.max(1, n || p), pages || 1));
   const zoomBy = (f: number) => { setFit('custom'); setCustomZoom(Math.min(4, Math.max(0.4, zoom * f))); };

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { listenCounter } from '@/lib/listening';
 
 const RATES = [0.75, 1, 1.25, 1.5, 2];
 
@@ -12,12 +13,14 @@ export function VideoPlayer({ src, subtitles, fileId, materialId, resumeAt, canS
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const lastSave = useRef(0);
+  const listened = useRef(listenCounter());
   const [rate, setRate] = useState(1);
 
   async function save(completed = false) {
     const v = video.current;
     if (!canSave || !v || !isFinite(v.currentTime)) return;
     lastSave.current = Date.now();
+    void listened.current.flush(materialId);
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -41,7 +44,8 @@ export function VideoPlayer({ src, subtitles, fileId, materialId, resumeAt, canS
       <video ref={video} src={src} controls playsInline preload="metadata" crossOrigin="anonymous" poster={poster ?? undefined}
         style={{ width: '100%', maxHeight: '75vh', borderRadius: 16, background: '#000' }}
         onLoadedMetadata={(e) => { const v = e.currentTarget; if (resumeAt > 5 && resumeAt < v.duration - 5) v.currentTime = resumeAt; }}
-        onTimeUpdate={() => { if (Date.now() - lastSave.current > 10000) void save(); }}
+        onTimeUpdate={(e) => { listened.current.tick(e.currentTarget); if (Date.now() - lastSave.current > 10000) void save(); }}
+        onSeeking={() => listened.current.reset()}
         onPause={() => void save()} onEnded={() => void save(true)}>
         {subtitles.map((t, i) => <track key={t.src} kind="subtitles" src={t.src} label={t.label} srcLang={t.lang} default={i === 0} />)}
         Seu navegador não reproduz este vídeo.

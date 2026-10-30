@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { listenCounter } from '@/lib/listening';
 
 export interface Track { id: string; title: string; duration?: number | null }
 export interface Queue {
@@ -48,6 +49,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audio = useRef<HTMLAudioElement | null>(null);
   const lastSaved = useRef(0);
   const pendingSeek = useRef<number | null>(null);
+  const listened = useRef(listenCounter());
   const [s, set] = useState<PlayerState>({
     queue: null, index: 0, playing: false, time: 0, duration: 0, rate: 1,
     sleepAt: null, sleepEndOfTrack: false, error: null,
@@ -59,6 +61,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const { queue, index } = state.current;
     const el = audio.current;
     if (!queue || !el) return;
+    void listened.current.flush(queue.materialId);
     const track = queue.tracks[index];
     if (!track) return;
     const supabase = createClient();
@@ -73,6 +76,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const playIndex = useCallback(async (q: Queue, i: number, startAt = 0, autoplay = true) => {
     const el = audio.current;
     if (!el) return;
+    void listened.current.flush(state.current.queue?.materialId);
+    listened.current.reset();
     set((p) => ({ ...p, queue: q, index: i, time: startAt, duration: q.tracks[i]?.duration ?? 0, error: null }));
     try {
       el.src = await signedUrl(q.tracks[i].id);
@@ -89,6 +94,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     el.preload = 'metadata';
     audio.current = el;
     const onTime = () => {
+      listened.current.tick(el);
       set((p) => ({ ...p, time: el.currentTime }));
       if (Date.now() - lastSaved.current > 15000) { lastSaved.current = Date.now(); void save(); }
       const { sleepAt } = state.current;

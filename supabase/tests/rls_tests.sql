@@ -206,4 +206,42 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== perfil, agenda, notas de voz, calendário e mensagens'
+insert into public.agenda_events (user_id, day, title) values ('00000000-0000-0000-0000-00000000000c', '2026-11-15', 'compromisso de outra pessoa');
+insert into public.daily_messages (entity, text, active) values ('Caboclo', 'mensagem pausada de teste', false);
+insert into storage.objects (bucket_id, name) values ('notes', '00000000-0000-0000-0000-00000000000c/x/1.webm');
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  insert into public.reading_pages (user_id, material_id, page) values (auth.uid(), '10000000-0000-0000-0000-000000000002', 1);
+  assert public.t_expect_error($q$insert into public.reading_pages (user_id, material_id, page) values (auth.uid(), '10000000-0000-0000-0000-000000000003', 1)$q$), 'não conta página de rascunho';
+  assert public.t_expect_error($q$insert into public.reading_pages (user_id, material_id, page) values ('00000000-0000-0000-0000-00000000000c', '10000000-0000-0000-0000-000000000001', 1)$q$), 'não conta página por outra pessoa';
+  perform public.log_listening('10000000-0000-0000-0000-000000000002', 5000);
+  assert (select seconds from public.listening_time) = 120, 'cada registro de escuta vale no máximo 2 minutos';
+  perform public.log_listening('10000000-0000-0000-0000-000000000003', 60);
+  assert (select count(*) from public.listening_time) = 1, 'não registra escuta de material sem acesso';
+  assert public.t_expect_error($q$insert into public.listening_time (user_id, material_id, seconds) values (auth.uid(), '10000000-0000-0000-0000-000000000001', 99999)$q$), 'não grava minutos direto na tabela';
+  assert (select count(*) from public.agenda_events) = 0, 'não vê a agenda de outra pessoa';
+  insert into public.agenda_events (user_id, day, title) values (auth.uid(), '2026-11-15', 'Gira');
+  assert (select count(*) from public.agenda_events) = 1, 'vê a própria agenda';
+  assert (select count(*) from public.calendar_dates) > 0, 'membro lê as datas da religião';
+  assert public.t_expect_error($q$insert into public.calendar_dates (month, day, title) values (1, 1, 'x')$q$), 'membro não edita datas';
+  assert (select count(*) from public.daily_messages where not active) = 0, 'mensagens pausadas não aparecem';
+  assert public.t_expect_error($q$insert into public.daily_messages (entity, text) values ('Exu', 'mensagem inventada pelo membro')$q$), 'membro não cria mensagem';
+  assert (select count(*) from storage.objects where bucket_id = 'notes') = 0, 'não ouve nota de voz de outra pessoa';
+  insert into storage.objects (bucket_id, name) values ('notes', auth.uid()::text || '/m/1.webm');
+  assert public.t_expect_error($q$insert into storage.objects (bucket_id, name) values ('notes', '00000000-0000-0000-0000-00000000000c/m/2.webm')$q$), 'não grava na pasta de outra pessoa';
+end $$;
+rollback;
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert (select count(*) from public.daily_messages) > 0, 'visitante vê a mensagem do dia';
+  assert (select count(*) from public.agenda_events) = 0, 'visitante não vê agendas';
+  assert public.t_expect_error($q$select public.log_listening('10000000-0000-0000-0000-000000000001', 60)$q$), 'visitante não registra escuta';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

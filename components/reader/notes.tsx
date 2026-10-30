@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './reader.module.css';
+import { VoicePlayer, VoiceRecorder } from './VoiceNote';
 
 export type Bookmark = { id: string; location: string; label: string | null; created_at: string };
-export type Note = { id: string; location: string; quote: string | null; note: string | null; created_at: string };
+export type Note = { id: string; location: string; quote: string | null; note: string | null; audio_path: string | null; created_at: string };
 
 // Marcadores e anotações do leitor: privados de cada pessoa (RLS por user_id)
 export function useReaderNotes(materialId: string, enabled: boolean) {
@@ -18,7 +19,7 @@ export function useReaderNotes(materialId: string, enabled: boolean) {
     const supabase = createClient();
     const [b, n] = await Promise.all([
       supabase.from('bookmarks').select('id, location, label, created_at').eq('material_id', materialId).order('created_at'),
-      supabase.from('annotations').select('id, location, quote, note, created_at').eq('material_id', materialId).order('created_at'),
+      supabase.from('annotations').select('id, location, quote, note, audio_path, created_at').eq('material_id', materialId).order('created_at'),
     ]);
     if (b.data) setBookmarks(b.data as Bookmark[]);
     if (n.data) setNotes(n.data as Note[]);
@@ -47,21 +48,37 @@ export function useReaderNotes(materialId: string, enabled: boolean) {
     setBookmarks((list) => [...list, data as Bookmark]);
   }
 
-  async function addNote(location: string, note: string, quote: string) {
+  async function addNote(location: string, note: string, quote: string, voice: Blob | null = null) {
     setError('');
     const uid = await userId();
     if (!uid) { setError('Entre na sua conta para salvar anotações.'); return false; }
-    const { data, error: e } = await createClient().from('annotations')
-      .insert({ user_id: uid, material_id: materialId, location, note: note.trim() || null, quote: quote.trim().slice(0, 2000) || null })
-      .select('id, location, quote, note, created_at').single();
-    if (e || !data) { setError('Não foi possível salvar a anotação (sem conexão?).'); return false; }
+    const supabase = createClient();
+    let audioPath: string | null = null;
+    if (voice) {
+      const ext = voice.type.includes('mp4') ? 'm4a' : voice.type.includes('ogg') ? 'ogg' : 'webm';
+      audioPath = `${uid}/${materialId}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('notes').upload(audioPath, voice, { contentType: voice.type || 'audio/webm' });
+      if (upErr) { setError('Não foi possível salvar o áudio (sem conexão?).'); return false; }
+    }
+    const { data, error: e } = await supabase.from('annotations')
+      .insert({ user_id: uid, material_id: materialId, location, note: note.trim() || null, quote: quote.trim().slice(0, 2000) || null, audio_path: audioPath })
+      .select('id, location, quote, note, audio_path, created_at').single();
+    if (e || !data) {
+      if (audioPath) await supabase.storage.from('notes').remove([audioPath]);
+      setError('Não foi possível salvar a anotação (sem conexão?).');
+      return false;
+    }
     setNotes((list) => [...list, data as Note]);
     return true;
   }
 
   async function removeNote(id: string) {
-    const { error: e } = await createClient().from('annotations').delete().eq('id', id);
-    if (!e) setNotes((list) => list.filter((n) => n.id !== id));
+    const supabase = createClient();
+    const gone = notes.find((n) => n.id === id);
+    const { error: e } = await supabase.from('annotations').delete().eq('id', id);
+    if (e) return;
+    if (gone?.audio_path) await supabase.storage.from('notes').remove([gone.audio_path]);
+    setNotes((list) => list.filter((n) => n.id !== id));
   }
 
   return { bookmarks, notes, error, toggleBookmark, addNote, removeNote, isMarked: (loc: string) => bookmarks.some((b) => b.location === loc) };
@@ -74,6 +91,7 @@ export function NotesPanel({ api, location, describe, onGo, initialQuote, canSav
   const [text, setText] = useState('');
   const [quote, setQuote] = useState(initialQuote);
   const [saving, setSaving] = useState(false);
+  const [voice, setVoice] = useState<Blob | null>(null);
   useEffect(() => setQuote(initialQuote), [initialQuote]);
 
   if (!canSave) return <p className={styles.note}>Entre na sua conta para criar marcadores e anotações. Eles ficam guardados só para você.</p>;
@@ -81,9 +99,9 @@ export function NotesPanel({ api, location, describe, onGo, initialQuote, canSav
     <div className={styles.notes}>
       <form className={styles.noteForm} onSubmit={async (e) => {
         e.preventDefault();
-        if (!text.trim() && !quote.trim()) return;
+        if (!text.trim() && !quote.trim() && !voice) return;
         setSaving(true);
-        if (await api.addNote(location, text, quote)) { setText(''); setQuote(''); }
+        if (await api.addNote(location, text, quote, voice)) { setText(''); setQuote(''); setVoice(null); }
         setSaving(false);
       }}>
         <b>Nova anotação · {describe(location)}</b>
@@ -91,7 +109,8 @@ export function NotesPanel({ api, location, describe, onGo, initialQuote, canSav
           : <small>Dica: selecione um trecho do texto antes de abrir as notas para citá-lo.</small>}
         <label htmlFor="nota" className="sr-only">Anotação</label>
         <textarea id="nota" value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder="Escreva sua anotação…" maxLength={4000} />
-        <button type="submit" className={styles.tb} disabled={saving || (!text.trim() && !quote.trim())}>{saving ? 'Salvando…' : 'Salvar anotação'}</button>
+        <VoiceRecorder value={voice} onChange={setVoice} />
+        <button type="submit" className={styles.tb} disabled={saving || (!text.trim() && !quote.trim() && !voice)}>{saving ? 'Salvando…' : 'Salvar anotação'}</button>
       </form>
       {api.error ? <p className={styles.note} role="alert">{api.error}</p> : null}
 
@@ -111,6 +130,7 @@ export function NotesPanel({ api, location, describe, onGo, initialQuote, canSav
               {n.quote ? <q>{n.quote}</q> : null}
               {n.note ? <span>{n.note}</span> : null}
             </button>
+            {n.audio_path ? <VoicePlayer path={n.audio_path} /> : null}
             <button type="button" className={styles.del} onClick={() => { if (confirm('Apagar esta anotação?')) void api.removeNote(n.id); }} aria-label="Apagar anotação">Apagar</button>
           </li>
         ))}</ol>

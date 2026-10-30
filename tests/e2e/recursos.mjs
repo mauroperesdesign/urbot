@@ -58,7 +58,7 @@ await sb.from('course_items').insert([
   { course_id: course.id, material_id: epub.id, position: 1, section: 'Módulo 1' },
 ]);
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] });
 try {
   await check('Visitante vê a página de boas-vindas', async () => {
     const p = await (await browser.newContext()).newPage();
@@ -70,7 +70,7 @@ try {
     assert(p.url().includes('/entrar'), `minha biblioteca abriu sem login (${r.status()})`);
   });
 
-  const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, permissions: ['microphone'] });
   const page = await login(ctx, 'membro@teste.local');
 
   await check('Cards usam miniaturas leves das capas', async () => {
@@ -120,6 +120,12 @@ try {
     await page.locator('aside li >> text=Nota no PDF').waitFor();
     await page.click('button[aria-label="Marcar esta página"]');
     await page.locator('button[aria-label="Remover marcador desta página"]').waitFor();
+    // Sair logo em seguida pelo "voltar" não pode perder o ponto onde parou
+    await page.click('a[aria-label="Voltar ao material"]');
+    await page.waitForURL(/\/material\//);
+    await page.waitForTimeout(800);
+    const { data: rp } = await sb.from('reading_progress').select('location').eq('user_id', member.id).eq('material_id', pdf.id).maybeSingle();
+    assert(rp?.location === '1', `progresso não salvo ao sair: ${rp?.location}`);
   });
 
   await check('Anotação abre o leitor no ponto certo (?local=)', async () => {
@@ -203,12 +209,100 @@ try {
     await sb.from('materials').update({ course_only: false }).eq('id', epub.id);
   });
 
-  await check('Início mostra "Continue de onde parou" com vídeo e leitura', async () => {
+  await check('Início separa "Continue lendo" e "Continue ouvindo"', async () => {
     await page.goto(BASE);
-    const cont = page.locator('section:has(#h-cont) .bcard');
-    const txt = (await cont.allInnerTexts()).join(' | ');
-    assert(txt.includes('Vídeo de teste E2E') && txt.includes('Continuar assistindo'), txt);
-    assert(txt.includes('EPUB de teste E2E'), txt);
+    const lendo = (await page.locator('section:has(#h-lendo) .bcard').allInnerTexts()).join(' | ');
+    const ouvindo = (await page.locator('section:has(#h-ouvindo) .bcard').allInnerTexts()).join(' | ');
+    assert(lendo.includes("EPUB de teste E2E") && lendo.includes("PDF de teste E2E"), `lendo: ${lendo.replace(/\n/g, " / ")}`);
+    assert(ouvindo.includes('Vídeo de teste E2E') && !ouvindo.includes('PDF de teste'), `ouvindo: ${ouvindo}`);
+  });
+
+  await check('Mensagem do dia e data especial no topo da página inicial', async () => {
+    const now = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: 'numeric', month: 'numeric' }).formatToParts(new Date());
+    const day = Number(now.find((x) => x.type === 'day').value), month = Number(now.find((x) => x.type === 'month').value);
+    const { data: sp } = await sb.from('calendar_dates').insert({ month, day, title: `Data especial E2E ${run}`, greeting: 'Saravá!' }).select('id').single();
+    try {
+      await page.goto(BASE);
+      assert((await page.locator('.special-day').allInnerTexts()).join(' ').includes(`Data especial E2E ${run}`), 'sem destaque do dia');
+      const first = await page.locator('.daily-msg blockquote').innerText();
+      assert(/^Mensagem (de|do|da) /.test(await page.locator('.daily-msg-head b').innerText()), 'sem título da mensagem');
+      let changed = false;
+      for (let i = 0; i < 5 && !changed; i++) { await page.click('.daily-msg button:has-text("Outra mensagem")'); changed = (await page.locator('.daily-msg blockquote').innerText()) !== first; }
+      assert(changed, 'Outra mensagem não trocou');
+    } finally { await sb.from('calendar_dates').delete().eq('id', sp.id); }
+  });
+
+  await check('Pontos cantados: menu por Orixá e Linha, lista os pontos', async () => {
+    const { data: cat } = await sb.from('categories').select('id').eq('slug', 'pontos-de-ogum').single();
+    await sb.from('material_categories').insert({ material_id: pdf.id, category_id: cat.id });
+    await page.goto(BASE);
+    await page.click('.sidebar summary:has-text("Pontos cantados")');
+    await page.click('.side-sub a:has-text("Ogum")');
+    await page.waitForURL(/de=pontos-de-ogum/);
+    assert(await page.locator('.bcard:has-text("PDF de teste E2E")').count() === 1, 'ponto não listado');
+    assert(await page.locator('.side-sub a:has-text("Preto Velho")').count() === 1, 'sem linha Preto Velho no menu');
+  });
+
+  await check('Nota de voz de até 10 segundos no leitor', async () => {
+    await page.goto(`${BASE}/ler/${pdf.slug}`);
+    await page.locator('canvas[aria-label^="Página"]').waitFor({ state: 'visible', timeout: 20000 });
+    await page.click('button[aria-label="Marcadores e anotações"]');
+    await page.click('button:has-text("Gravar voz")');
+    await page.locator('button:has-text("Gravando")').waitFor();
+    await page.waitForTimeout(2200);
+    await page.click('button[aria-label="Parar gravação"]');
+    await page.locator('.voice-rec audio').waitFor();
+    await page.fill('#nota', 'Nota com voz');
+    await page.click('button:has-text("Salvar anotação")');
+    await page.locator('aside li >> text=Nota com voz').waitFor({ timeout: 10000 });
+    const { data } = await sb.from('annotations').select('audio_path').eq('user_id', member.id).eq('note', 'Nota com voz').single();
+    assert(data?.audio_path?.startsWith(`${member.id}/`), `sem áudio: ${data?.audio_path}`);
+    const { data: obj } = await sb.storage.from('notes').download(data.audio_path);
+    assert(obj && obj.size > 500, 'arquivo de áudio vazio');
+    // limite de 10 s: a gravação para sozinha
+    await page.click('button:has-text("Gravar voz")');
+    await page.locator('.voice-rec audio').waitFor({ timeout: 14000 });
+  });
+
+  await check('Meu perfil: páginas lidas, minutos, continue lendo/ouvindo e caderno por livro', async () => {
+    await page.goto(`${BASE}/perfil`);
+    const tiles = await page.locator('.stat-tile').allInnerTexts();
+    const pages = Number((tiles.find((t) => t.startsWith('Páginas lidas')) ?? '').replace(/\D+/g, ' ').trim().split(' ')[0]);
+    assert(pages >= 1, `páginas: ${tiles}`);
+    assert(tiles.some((t) => t.startsWith('Minutos escutados')), 'sem minutos');
+    const { data: lt } = await sb.from('listening_time').select('seconds').eq('user_id', member.id).eq('material_id', video.id).maybeSingle();
+    assert((lt?.seconds ?? 0) >= 2, `tempo de vídeo não somado: ${lt?.seconds}`);
+    assert(await page.locator('#ouvindo .lesson:has-text("Vídeo de teste E2E")').count() === 1, 'sem "onde parei de ouvir"');
+    const book = page.locator('details.notebook:has-text("PDF de teste E2E")');
+    assert((await book.innerText()).includes('Nota no PDF') && (await book.innerText()).includes('Nota com voz'), 'caderno sem as notas do livro');
+    assert(await book.locator('button:has-text("Ouvir nota de voz")').count() >= 1, 'caderno sem nota de voz');
+  });
+
+  await check('Agenda: datas da religião e compromisso pessoal', async () => {
+    const year = new Date().getFullYear();
+    await page.goto(`${BASE}/agenda?ano=${year}&dia=${year}-11-15`);
+    assert((await page.locator('.cal-holy-card').innerText()).includes('Dia Nacional da Umbanda'), 'sem 15/11');
+    assert(await page.locator('.cal-day[data-holy="true"]').count() >= 15, 'poucas datas marcadas');
+    await page.fill('input[name=title]', `Gira E2E ${run}`);
+    await page.click('button:has-text("Adicionar")');
+    await page.locator(`.cal-event:has-text("Gira E2E ${run}")`).waitFor();
+    assert(await page.locator(`a.cal-day[href*="dia=${year}-11-15"][data-mine="true"]`).count() === 1, 'dia sem marcação de compromisso');
+    await sb.from('agenda_events').delete().eq('user_id', member.id).like('title', `%${run}`);
+  });
+
+  await check('Celular: botão "Menu" abre o menu completo (Pontos cantados, Agenda…)', async () => {
+    const mob = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: await ctx.storageState() })).newPage();
+    await mob.goto(BASE);
+    assert(!(await mob.locator('.sidebar').isVisible()), 'menu lateral visível no celular');
+    await mob.click('.tabbar button:has-text("Menu")');
+    await mob.click('.mobile-menu a:has-text("Agenda")');
+    await mob.waitForURL(/\/agenda/);
+    await mob.locator('.mobile-menu').waitFor({ state: 'detached' });
+    await mob.click('.tabbar button:has-text("Menu")');
+    await mob.click('.mobile-menu summary:has-text("Pontos cantados")');
+    await mob.click('.mobile-menu .side-sub a:has-text("Caboclo")');
+    await mob.waitForURL(/de=pontos-de-caboclo/);
+    await mob.context().close();
   });
 
   await check('Membro não acessa estatísticas (nem pela função do banco)', async () => {
@@ -252,6 +346,8 @@ try {
   // limpeza
   await sb.from('collections').delete().eq('user_id', member.id).like('name', `%${run}`);
   await sb.from('course_access').delete().eq('course_id', course.id);
+  const { data: voice } = await sb.from('annotations').select('audio_path').eq('user_id', member.id).not('audio_path', 'is', null);
+  if (voice?.length) await sb.storage.from('notes').remove(voice.map((v) => v.audio_path));
   const ids = [pdf.id, epub.id, video.id, course.id];
   const { data: files } = await sb.from('files').select('path').in('material_id', ids);
   await sb.storage.from('materials').remove((files ?? []).map((f) => f.path));

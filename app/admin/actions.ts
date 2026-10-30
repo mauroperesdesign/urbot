@@ -282,3 +282,43 @@ export async function rejectCourseRequest(form: FormData) {
   revalidatePath(`/admin/materiais/${course}`);
   revalidatePath('/admin');
 }
+
+// ---------------------------------------------------------------- calendário e mensagens
+export async function addCalendarDate(form: FormData) {
+  const { supabase } = await requireStaff();
+  const month = Number(form.get('month'));
+  const day = Number(form.get('day'));
+  const title = str(form, 'title', 120);
+  if (title && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+    await supabase.from('calendar_dates').insert({ month, day, title, description: str(form, 'description', 300), greeting: str(form, 'greeting', 80) });
+  }
+  revalidatePath('/admin/calendario');
+  revalidatePath('/', 'layout');
+}
+
+export async function deleteCalendarDate(form: FormData) {
+  const { supabase } = await requireStaff();
+  await supabase.from('calendar_dates').delete().eq('id', String(form.get('id')));
+  revalidatePath('/admin/calendario');
+  revalidatePath('/', 'layout');
+}
+
+export async function addMessage(form: FormData) {
+  const { supabase } = await requireStaff();
+  const entity = str(form, 'entity', 40);
+  const text = str(form, 'text', 600);
+  if (entity && text && text.length >= 10) await supabase.from('daily_messages').insert({ entity, text });
+  revalidatePath('/admin/calendario');
+}
+
+export async function toggleMessage(form: FormData) {
+  const { supabase } = await requireStaff();
+  await supabase.from('daily_messages').update({ active: form.get('active') === '1' }).eq('id', String(form.get('id')));
+  revalidatePath('/admin/calendario');
+}
+
+export async function deleteMessage(form: FormData) {
+  const { supabase } = await requireStaff();
+  await supabase.from('daily_messages').delete().eq('id', String(form.get('id')));
+  revalidatePath('/admin/calendario');
+}

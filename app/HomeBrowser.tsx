@@ -12,7 +12,7 @@ export type HomeItem = {
   description: string | null; pageCount: number | null; duration: number | null; language: string;
   roots: string[]; featured: boolean;
 };
-export type HomeContinue = { id: string; slug: string; title: string; type: MaterialType; coverUrl: string | null; percent: number | null; href: string };
+export type HomeContinue = { id: string; slug: string; title: string; type: MaterialType; coverUrl: string | null; percent: number | null; href: string; sub: string };
 
 const LANG: Record<string, string> = { pt: 'Português', es: 'Espanhol', en: 'Inglês' };
 const WIDE = '(min-width: 1280px)';
@@ -63,8 +63,9 @@ function Spotlight({ m }: { m: HomeItem | undefined }) {
   );
 }
 
-export function HomeBrowser({ items, roots, continuing, pendingApproval }: {
-  items: HomeItem[]; roots: { id: string; name: string; slug: string }[]; continuing: HomeContinue[]; pendingApproval: boolean;
+export function HomeBrowser({ items, roots, reading = [], listening = [], pendingApproval, top }: {
+  items: HomeItem[]; roots: { id: string; name: string; slug: string }[]; reading?: HomeContinue[]; listening?: HomeContinue[];
+  pendingApproval: boolean; top?: React.ReactNode;
 }) {
   const recommended = useMemo(() => {
     // Destaques escolhidos pela administração primeiro; depois os que têm capa
@@ -87,11 +88,20 @@ export function HomeBrowser({ items, roots, continuing, pendingApproval }: {
             Seu cadastro está aguardando aprovação da administração. Até lá, você vê apenas os materiais públicos.
           </p>
         ) : null}
-        {continuing.length ? (
-          <section className="panel" aria-labelledby="h-cont">
-            <div className="panel-head"><h2 id="h-cont">Continue de onde parou</h2><Link className="pill-link" href="/minha-biblioteca">Ver tudo <Icon name="next" size={14} /></Link></div>
+        {top}
+        {reading.length ? (
+          <section className="panel" aria-labelledby="h-lendo">
+            <div className="panel-head"><h2 id="h-lendo">Continue lendo</h2><Link className="pill-link" href="/perfil#lendo">Ver tudo <Icon name="next" size={14} /></Link></div>
             <div className="shelf">
-              {continuing.map((m) => <Card key={m.id} m={m} href={m.href} percent={m.percent} sub={m.percent != null ? `${Math.round(m.percent)}% concluído` : m.type === 'audiobook' || m.type === 'audio' ? 'Continuar ouvindo' : m.type === 'video' || m.type === 'video_lesson' ? 'Continuar assistindo' : 'Em andamento'} />)}
+              {reading.map((m) => <Card key={m.id} m={m} href={m.href} percent={m.percent} sub={m.sub} />)}
+            </div>
+          </section>
+        ) : null}
+        {listening.length ? (
+          <section className="panel" aria-labelledby="h-ouvindo">
+            <div className="panel-head"><h2 id="h-ouvindo">Continue ouvindo</h2><Link className="pill-link" href="/perfil#ouvindo">Ver tudo <Icon name="next" size={14} /></Link></div>
+            <div className="shelf">
+              {listening.map((m) => <Card key={m.id} m={m} href={m.href} sub={m.sub} />)}
             </div>
           </section>
         ) : null}

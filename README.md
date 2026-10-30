@@ -27,6 +27,11 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Leitura sem internet: PDF/EPUB salvos no aparelho, apagados ao sair da conta | ✅ |
 | Estatísticas para a equipe: pessoas ativas, acessos por dia, materiais mais acessados | ✅ |
 | Página de boas-vindas para visitantes; miniaturas leves das capas | ✅ |
+| Início com “Continue lendo” e “Continue ouvindo” separados, mensagem do dia (por linha/entidade) e destaque das datas da religião | ✅ |
+| Pontos cantados por Orixá e por linha de trabalho (menu lateral e página própria) | ✅ |
+| Meu perfil: páginas lidas, minutos escutados, onde parou de ler/ouvir e caderno de anotações por livro | ✅ |
+| Notas de voz de até 10 segundos nas anotações | ✅ |
+| Agenda pessoal com o calendário do ano e as datas da religião (editáveis pela equipe) | ✅ |
 | Extração de texto dos PDFs para a busca geral | ⏳ próxima etapa |
 
 ## Como colocar no ar

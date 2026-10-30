@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/categorias', label: 'Categorias' },
   { href: '/admin/usuarios', label: 'Usuários e permissões' },
   { href: '/admin/estatisticas', label: 'Estatísticas' },
+  { href: '/admin/calendario', label: 'Calendário e mensagens' },
   { href: '/admin/exportar', label: 'Exportar CSV' },
 ];
 

@@ -28,6 +28,9 @@ export function EpubReader(props: {
   const rendition = useRef<Rendition | null>(null);
   const selection = useRef('');
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const materialRef = useRef(props.materialId);
+  materialRef.current = props.materialId;
+  const pendingSave = useRef<{ location: string; percent: number | null; page: number | null } | null>(null);
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState('');
@@ -121,19 +124,43 @@ export function EpubReader(props: {
   useEffect(() => {
     if (!props.canSave || status !== 'ready' || !cfi) return;
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
+    const b0 = book.current;
+    // Cada trecho de ~1600 caracteres conta como uma página lida
+    const loc = b0 && b0.locations.length() ? Number(b0.locations.locationFromCfi(cfi)) + 1 : 0;
+    const entry = { location: cfi, percent: percent != null ? Math.round(percent * 10000) / 100 : null, page: loc > 0 ? loc : null };
+    const run = async () => {
+      pendingSave.current = null;
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         await supabase.from('reading_progress').upsert({
-          user_id: user.id, material_id: props.materialId, location: cfi,
-          percent: percent != null ? Math.round(percent * 10000) / 100 : null, updated_at: new Date().toISOString(),
+          user_id: user.id, material_id: props.materialId, location: entry.location, percent: entry.percent, updated_at: new Date().toISOString(),
         });
+        if (entry.page) await supabase.from('reading_pages').upsert({ user_id: user.id, material_id: props.materialId, page: entry.page }, { onConflict: 'user_id,material_id,page', ignoreDuplicates: true });
       } catch { /* sem conexão: tenta de novo na próxima mudança */ }
-    }, 1500);
+    };
+    pendingSave.current = entry;
+    saveTimer.current = setTimeout(run, 1500);
     return () => clearTimeout(saveTimer.current);
   }, [cfi, percent, status, props.canSave, props.materialId]);
+
+  // Ao sair do leitor (ou trocar de app no celular), salva na hora o que estava pendente
+  useEffect(() => {
+    const flush = () => {
+      const p = pendingSave.current;
+      if (!p) return;
+      pendingSave.current = null;
+      clearTimeout(saveTimer.current);
+      // sendBeacon chega ao servidor mesmo com a página fechando
+      const body = new Blob([JSON.stringify({ material: materialRef.current, ...p })], { type: 'application/json' });
+      if (!navigator.sendBeacon?.('/api/progresso', body)) void fetch('/api/progresso', { method: 'POST', body, keepalive: true }).catch(() => undefined);
+    };
+    const onHide = () => { if (document.visibilityState === 'hidden') flush(); };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', flush);
+    return () => { document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', flush); flush(); };
+  }, []);
 
   // O painel muda o espaço do texto: o livro é repaginado
   useEffect(() => {
