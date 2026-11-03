@@ -11,7 +11,7 @@ export function Welcome() {
   return (
     <section className="welcome" aria-labelledby="boas-vindas">
       <div className="welcome-hero">
-        <img src="/logo.webp" alt="" className="welcome-logo" />
+        <img src="/logo-entenda.webp" alt="" className="welcome-logo" />
         <span className="eyebrow" style={{ color: '#9DB6FF' }}>Grupo de Estudos da Umbanda En Tenda</span>
         <h1 id="boas-vindas">Biblioteca Umbandista</h1>
         <p>O acervo de estudos do terreiro: livros, apostilas, pontos, orações e audiobooks, organizados por tema e respeitando a diversidade de fundamentos e linhagens.</p>

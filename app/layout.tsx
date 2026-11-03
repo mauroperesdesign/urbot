@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(site),
   title: { default: 'Biblioteca Umbandista', template: '%s · Biblioteca Umbandista' },
   description: 'Acervo de estudo do Grupo de Estudos da Umbanda En Tenda: livros, apostilas e audiobooks organizados por tema.',
-  openGraph: { type: 'website', siteName: 'Biblioteca Umbandista', locale: 'pt_BR', images: ['/logo.webp'] },
-  icons: { icon: '/logo.webp', apple: '/apple-touch-icon.png' },
+  openGraph: { type: 'website', siteName: 'Biblioteca Umbandista', locale: 'pt_BR', images: ['/logo-entenda.webp'] },
+  icons: { icon: [{ url: '/favicon-entenda.png', type: 'image/png' }], apple: '/apple-touch-icon-entenda.png' },
   appleWebApp: { capable: true, title: 'Biblioteca', statusBarStyle: 'default' },
 };
 

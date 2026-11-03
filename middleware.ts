@@ -42,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|logo.webp|pdf.worker|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mjs)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|logo-entenda.webp|pdf.worker|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mjs)$).*)'],
 };

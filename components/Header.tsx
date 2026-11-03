@@ -18,7 +18,7 @@ async function session() {
 function Brand() {
   return (
     <Link href="/" className="brand" aria-label="Biblioteca Umbandista — início">
-      <img src="/logo.webp" alt="" />
+      <img src="/logo-entenda.webp" alt="" />
       <span><b>Biblioteca</b><small>Umbandista</small></span>
     </Link>
   );
