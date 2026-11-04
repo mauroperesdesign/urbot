@@ -8,6 +8,7 @@ import { Icon } from '@/components/Icon';
 import { ListPicker } from '@/components/ListPicker';
 import { FavoriteButton } from './FavoriteButton';
 import { cancelCourseRequest, requestCourseAccess } from './actions';
+import { Reviews, Stars, reviewSummary, type Review } from './Reviews';
 import { TYPE_LABEL, LISTEN_TYPES, primaryAction, formatDuration } from '@/lib/labels';
 import type { FileRow, Material } from '@/lib/types';
 
@@ -39,18 +40,22 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function MaterialPage({ params }: { params: { slug: string } }) {
+export default async function MaterialPage({ params, searchParams }: { params: { slug: string }; searchParams: { avaliacao?: string } }) {
   const m = await load(params.slug);
   if (!m) notFound();
   const { supabase, user, profile } = await getSession();
 
-  const [{ data: files }, { data: fav }, { data: progress }, { data: lists }] = await Promise.all([
+  const canReview = !!profile && (profile.approved || isStaff(profile));
+  const [{ data: files }, { data: fav }, { data: progress }, { data: lists }, { data: reviewRows }] = await Promise.all([
     supabase.from('files').select('id, role, title, position, duration_seconds, processing_status, path, external_url')
       .eq('material_id', m.id).in('role', ['main', 'track', 'supplementary']).order('position'),
     user ? supabase.from('favorites').select('material_id').eq('material_id', m.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from('reading_progress').select('location, percent').eq('material_id', m.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from('collections').select('id, name, collection_items(material_id)').order('created_at') : Promise.resolve({ data: null }),
+    canReview ? supabase.rpc('material_reviews', { m: m.id }) : Promise.resolve({ data: null }),
   ]);
+  const reviews = (reviewRows ?? []) as Review[];
+  const rated = reviewSummary(reviews);
   const fileRows = (files ?? []) as FileRow[];
   const tracks = fileRows.filter((f) => f.role === 'track');
   const main = fileRows.find((f) => f.role === 'main');
@@ -125,6 +130,13 @@ export default async function MaterialPage({ params }: { params: { slug: string 
             {authors.length ? <>por {authors.map((a, i) => <span key={a.authors!.slug}>{i ? ', ' : ''}<b>{a.authors!.name}</b></span>)}</> : 'Autor a confirmar'}
             {m.organizer ? <> · organização {m.organizer}</> : null}
           </p>
+          {rated.count ? (
+            <a href="#avaliacoes" className="mhero-rating">
+              <Stars value={rated.avg} size={16} />
+              <b>{rated.avg.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</b>
+              <span>· {rated.count} {rated.count === 1 ? 'avaliação' : 'avaliações'}</span>
+            </a>
+          ) : null}
           <div className="mhero-stats">
             {stats.map((s) => <div key={s.l}><b>{s.v}</b><span>{s.l}</span></div>)}
           </div>
@@ -223,6 +235,8 @@ export default async function MaterialPage({ params }: { params: { slug: string 
               {supplementary.map((f) => <a key={f.id} href={`/api/files/${f.id}?open=1`}>{f.title || 'Arquivo complementar'}</a>)}
             </section>
           ) : null}
+
+          <Reviews materialId={m.id} slug={m.slug} list={reviews} canReview={canReview} signedIn={!!user} staff={isStaff(profile)} status={searchParams.avaliacao} />
         </div>
 
         <aside className="stack" style={{ ['--gap' as string]: '20px', minWidth: 0 }}>

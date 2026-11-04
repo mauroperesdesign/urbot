@@ -277,4 +277,53 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== avaliações e resenhas'
+insert into public.reviews (material_id, user_id, rating, body) values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', 5, 'resenha do admin');
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  assert (select count(*) from public.reviews) = 1, 'membro lê as avaliações';
+  insert into public.reviews (material_id, user_id, rating, body) values ('10000000-0000-0000-0000-000000000002', auth.uid(), 4, 'boa leitura');
+  assert public.t_expect_error($q$insert into public.reviews (material_id, user_id, rating) values ('10000000-0000-0000-0000-000000000002', auth.uid(), 3)$q$), 'só uma avaliação por material';
+  assert public.t_expect_error($q$insert into public.reviews (material_id, user_id, rating) values ('10000000-0000-0000-0000-000000000001', auth.uid(), 6)$q$), 'nota acima de 5';
+  assert public.t_expect_error($q$insert into public.reviews (material_id, user_id, rating) values ('10000000-0000-0000-0000-000000000003', auth.uid(), 3)$q$), 'não avalia rascunho';
+  assert public.t_expect_error($q$insert into public.reviews (material_id, user_id, rating) values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000c', 1)$q$), 'não avalia em nome de outra pessoa';
+  update public.reviews set rating = 1 where user_id = '00000000-0000-0000-0000-00000000000a';
+  assert (select rating from public.reviews where user_id = '00000000-0000-0000-0000-00000000000a') = 5, 'não altera avaliação de outra pessoa';
+  delete from public.reviews where user_id = '00000000-0000-0000-0000-00000000000a';
+  assert (select count(*) from public.reviews where user_id = '00000000-0000-0000-0000-00000000000a') = 1, 'não apaga avaliação de outra pessoa';
+  update public.reviews set rating = 2 where user_id = auth.uid();
+  assert (select rating from public.reviews where user_id = auth.uid()) = 2, 'edita a própria avaliação';
+  assert public.t_expect_error($q$update public.reviews set user_id = '00000000-0000-0000-0000-00000000000c' where user_id = auth.uid()$q$), 'não troca o dono';
+  assert (select author from public.material_reviews('10000000-0000-0000-0000-000000000001')) = 'admin', 'lista mostra o nome de quem avaliou';
+  assert (select count(*) from public.material_reviews('10000000-0000-0000-0000-000000000002') where mine) = 1, 'marca a própria avaliação';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  assert (select count(*) from public.reviews) = 0, 'não aprovado não lê avaliações';
+  assert (select count(*) from public.material_reviews('10000000-0000-0000-0000-000000000001')) = 0, 'não aprovado não lista avaliações';
+  assert public.t_expect_error($q$insert into public.reviews (material_id, user_id, rating) values ('10000000-0000-0000-0000-000000000001', auth.uid(), 1)$q$), 'não aprovado não avalia';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+do $$ begin
+  delete from public.reviews where user_id = '00000000-0000-0000-0000-00000000000a';
+  assert (select count(*) from public.reviews) = 0, 'equipe pode remover avaliações';
+end $$;
+rollback;
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert (select count(*) from public.reviews) = 0, 'visitante não lê avaliações';
+  assert public.t_expect_error($q$select * from public.material_reviews('10000000-0000-0000-0000-000000000001')$q$), 'visitante não chama a lista';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

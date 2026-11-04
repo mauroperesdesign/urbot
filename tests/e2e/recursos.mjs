@@ -333,6 +333,30 @@ try {
     await mob.context().close();
   });
 
+  await check('Avaliações: membro dá nota e resenha, edita; média aparece; equipe pode remover', async () => {
+    await page.goto(`${BASE}/material/${epub.slug}#avaliacoes`);
+    await page.click('#avaliacoes .star-input label:nth-of-type(4)');
+    await page.fill('#avaliacoes textarea[name=body]', `Resenha E2E ${run}`);
+    await page.click('#avaliacoes button:has-text("Publicar avaliação")');
+    await page.waitForURL(/avaliacao=ok/);
+    assert((await page.locator('.review-avg > b').innerText()) === '4,0', 'média errada');
+    assert((await page.locator('.mhero-rating').innerText()).includes('1 avaliação'), 'nota não aparece no topo');
+    await page.click('#avaliacoes .star-input label:nth-of-type(5)');
+    await page.click('#avaliacoes button:has-text("Atualizar avaliação")');
+    await page.waitForFunction(() => document.querySelector('.review-avg > b')?.textContent === '5,0');
+    assert(await page.locator('#avaliacoes textarea[name=body]').inputValue() === `Resenha E2E ${run}`, 'resenha não ficou salva');
+    const admin = await login(await browser.newContext({ viewport: { width: 1366, height: 900 } }), 'admin@teste.local');
+    await admin.goto(`${BASE}/material/${epub.slug}#avaliacoes`);
+    const card = admin.locator(`.review:has-text("Resenha E2E ${run}")`);
+    await card.waitFor();
+    admin.once('dialog', (d) => d.accept());
+    await card.locator('button:has-text("Remover")').click();
+    await card.waitFor({ state: 'detached' });
+    await admin.context().close();
+    const { count } = await sb.from('reviews').select('id', { count: 'exact', head: true }).eq('material_id', epub.id);
+    assert(count === 0, 'avaliação não foi removida');
+  });
+
   await check('Membro não acessa estatísticas (nem pela função do banco)', async () => {
     const r = await page.goto(`${BASE}/admin/estatisticas`);
     assert(!page.url().includes('/admin/estatisticas') || r.status() >= 400, `membro abriu: ${page.url()}`);
