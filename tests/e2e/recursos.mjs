@@ -179,6 +179,31 @@ try {
     assert(Number(data?.position_seconds) >= 2, `posição: ${data?.position_seconds}`);
   });
 
+  await check('Leituras e vídeos: conta quantas vezes foi iniciado e concluído', async () => {
+    const counts = async (id) => (await sb.from('material_reads').select('kind, completed_at').eq('material_id', id).eq('user_id', member.id)).data ?? [];
+    await page.goto(`${BASE}/ler/${pdf.slug}?local=9`);
+    await page.locator('.textLayer, [class*=textLayer]').first().waitFor();
+    await page.waitForTimeout(2000);
+    const r = await counts(pdf.id);
+    assert(r.length === 1 && r[0].completed_at, `PDF até a última página não concluiu: ${JSON.stringify(r)}`);
+    await page.goto(`${BASE}/material/${pdf.slug}`);
+    const box = await page.locator('.read-counts').innerText();
+    assert(/Leitura iniciada\s+1 vez/.test(box) && /Leitura concluída\s+1 vez/.test(box), `contagem: ${box}`);
+    await page.goto(`${BASE}/assistir/${video.slug}`);
+    await page.locator('video').waitFor();
+    await page.evaluate(async () => {
+      const el = document.querySelector('video'); el.muted = true;
+      await new Promise((ok) => (el.readyState >= 1 ? ok() : el.addEventListener('loadedmetadata', ok, { once: true })));
+      el.currentTime = Math.max(0, el.duration - 1); await el.play();
+      await new Promise((ok) => el.addEventListener('ended', ok, { once: true }));
+    });
+    await page.waitForTimeout(1500);
+    const v = await counts(video.id);
+    assert(v.some((x) => x.kind === 'watch' && x.completed_at), `vídeo até o fim não concluiu: ${JSON.stringify(v)}`);
+    await page.goto(`${BASE}/material/${video.slug}`);
+    assert((await page.locator('.read-counts').innerText()).includes('Vídeo concluído'), 'sem contagem do vídeo');
+  });
+
   await check('Curso trancado: membro pede acesso, admin libera, aulas aparecem', async () => {
     await page.goto(`${BASE}/material/${course.slug}`);
     assert(await page.locator('.course-lock').isVisible(), 'curso não está trancado');

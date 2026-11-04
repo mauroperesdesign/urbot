@@ -9,7 +9,7 @@ import { ListPicker } from '@/components/ListPicker';
 import { FavoriteButton } from './FavoriteButton';
 import { cancelCourseRequest, requestCourseAccess } from './actions';
 import { Reviews, Stars, reviewSummary, type Review } from './Reviews';
-import { TYPE_LABEL, LISTEN_TYPES, primaryAction, formatDuration } from '@/lib/labels';
+import { TYPE_LABEL, LISTEN_TYPES, WATCH_TYPES, primaryAction, formatDuration } from '@/lib/labels';
 import type { FileRow, Material } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -46,14 +46,20 @@ export default async function MaterialPage({ params, searchParams }: { params: {
   const { supabase, user, profile } = await getSession();
 
   const canReview = !!profile && (profile.approved || isStaff(profile));
-  const [{ data: files }, { data: fav }, { data: progress }, { data: lists }, { data: reviewRows }] = await Promise.all([
+  const [{ data: files }, { data: fav }, { data: progress }, { data: lists }, { data: reviewRows }, { data: readRows }] = await Promise.all([
     supabase.from('files').select('id, role, title, position, duration_seconds, processing_status, path, external_url')
       .eq('material_id', m.id).in('role', ['main', 'track', 'supplementary']).order('position'),
     user ? supabase.from('favorites').select('material_id').eq('material_id', m.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from('reading_progress').select('location, percent').eq('material_id', m.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from('collections').select('id, name, collection_items(material_id)').order('created_at') : Promise.resolve({ data: null }),
     canReview ? supabase.rpc('material_reviews', { m: m.id }) : Promise.resolve({ data: null }),
+    supabase.rpc('material_read_counts', { m: m.id }),
   ]);
+  // Quantas vezes foi iniciado e concluído (leitura, audição ou vídeo, conforme o tipo)
+  const readKind = LISTEN_TYPES.includes(m.type) ? 'listen' : WATCH_TYPES.includes(m.type) ? 'watch' : 'read';
+  const readCount = ((readRows ?? []) as { kind: string; started: number; completed: number }[]).find((x) => x.kind === readKind);
+  const READ_WORDS = { read: ['Leitura iniciada', 'Leitura concluída'], listen: ['Audição iniciada', 'Audição concluída'], watch: ['Vídeo iniciado', 'Vídeo concluído'] }[readKind];
+  const times = (n: number) => `${n.toLocaleString('pt-BR')} ${n === 1 ? 'vez' : 'vezes'}`;
   const reviews = (reviewRows ?? []) as Review[];
   const rated = reviewSummary(reviews);
   const fileRows = (files ?? []) as FileRow[];
@@ -240,6 +246,16 @@ export default async function MaterialPage({ params, searchParams }: { params: {
         </div>
 
         <aside className="stack" style={{ ['--gap' as string]: '20px', minWidth: 0 }}>
+          {!isCourse ? (
+            <section className="panel stack" aria-labelledby="h-leituras">
+              <h2 id="h-leituras" style={{ fontSize: 18 }}>{readKind === 'listen' ? 'Audições' : readKind === 'watch' ? 'Exibições' : 'Leituras'} na biblioteca</h2>
+              <div className="read-counts">
+                <div><span>{READ_WORDS[0]}</span><b>{times(Number(readCount?.started ?? 0))}</b></div>
+                <div><span>{READ_WORDS[1]}</span><b>{times(Number(readCount?.completed ?? 0))}</b></div>
+              </div>
+              <small className="muted">{readKind === 'listen' ? 'Conta quando alguém dá play e quando ouve até a última faixa.' : readKind === 'watch' ? 'Conta quando alguém dá play e quando assiste até o fim.' : 'Conta quando alguém abre o leitor e quando chega à última página.'} Recomeçar depois de concluir conta como uma nova vez.</small>
+            </section>
+          ) : null}
           <section className="panel stack">
             <h2 style={{ fontSize: 18 }}>Ficha</h2>
             <dl className="ficha">

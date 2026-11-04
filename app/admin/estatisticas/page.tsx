@@ -38,6 +38,19 @@ export default async function StatsPage({ searchParams }: { searchParams: { dias
   });
   const max = Math.max(1, ...series.map((d) => d.total));
   const topMax = Math.max(1, ...(s?.top ?? []).map((t) => t.total));
+  // Vezes iniciadas e concluídas no período (leitura, audição ou vídeo)
+  const { data: reads } = s?.top.length
+    ? await supabase.from('material_reads').select('material_id, started_at, completed_at')
+        .in('material_id', s.top.map((t) => t.id)).or(`started_at.gte.${new Date(Date.now() - days * 86400000).toISOString()},completed_at.gte.${new Date(Date.now() - days * 86400000).toISOString()}`)
+    : { data: [] };
+  const since = Date.now() - days * 86400000;
+  const readsOf = (id: string) => {
+    const rows = (reads ?? []).filter((x) => x.material_id === id);
+    return {
+      started: rows.filter((x) => new Date(x.started_at).getTime() >= since).length,
+      completed: rows.filter((x) => x.completed_at && new Date(x.completed_at).getTime() >= since).length,
+    };
+  };
   const uses = (s?.events.read ?? 0) + (s?.events.listen ?? 0) + (s?.events.watch ?? 0);
 
   return (
@@ -90,18 +103,20 @@ export default async function StatsPage({ searchParams }: { searchParams: { dias
             <h2 id="h-top" style={{ fontSize: 16 }}>Mais acessados</h2>
             {s.top.length ? (
               <table className="data">
-                <thead><tr><th scope="col">Material</th><th scope="col">Formato</th><th scope="col">Pessoas</th><th scope="col" style={{ width: '38%' }}>Acessos</th></tr></thead>
+                <thead><tr><th scope="col">Material</th><th scope="col">Formato</th><th scope="col">Pessoas</th><th scope="col">Iniciadas</th><th scope="col">Concluídas</th><th scope="col" style={{ width: '38%' }}>Acessos</th></tr></thead>
                 <tbody>{s.top.map((t) => (
                   <tr key={t.id}>
                     <td><Link href={`/material/${t.slug}`} style={{ fontWeight: 600 }}>{t.title}</Link></td>
                     <td className="muted">{TYPE_LABEL[t.type]}</td>
                     <td>{t.people}</td>
+                    <td>{readsOf(t.id).started}</td>
+                    <td>{readsOf(t.id).completed}</td>
                     <td><span className="hbar"><i style={{ width: `calc(${t.total / topMax} * (100% - 48px))` }} /><b>{t.total}</b></span></td>
                   </tr>
                 ))}</tbody>
               </table>
             ) : <p className="muted" style={{ margin: 0 }}>Ainda não há acessos neste período.</p>}
-            <small className="muted">Cada abertura do leitor, do player ou de um vídeo conta um acesso. Os dados pessoais de leitura continuam privados: aqui aparecem só totais.</small>
+            <small className="muted">Cada abertura do leitor, do player ou de um vídeo conta um acesso. “Iniciadas” e “Concluídas” contam as vezes que a leitura (ou audição, ou vídeo) começou e chegou ao fim no período. Os dados pessoais de leitura continuam privados: aqui aparecem só totais.</small>
           </section>
         </>
       ) : null}

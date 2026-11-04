@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { listenCounter } from '@/lib/listening';
+import { markRead } from '@/lib/reads';
 
 export interface Track { id: string; title: string; duration?: number | null }
 export interface Queue {
@@ -104,11 +105,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       if (pendingSeek.current) { el.currentTime = pendingSeek.current; pendingSeek.current = null; }
       set((p) => ({ ...p, duration: el.duration }));
     };
-    const onPlay = () => set((p) => ({ ...p, playing: true }));
+    const onPlay = () => {
+      set((p) => ({ ...p, playing: true }));
+      markRead(state.current.queue?.materialId, 'listen', 'start');
+    };
     const onPause = () => { set((p) => ({ ...p, playing: false })); void save(); };
     const onEnded = () => {
       void save(true);
       const { queue, index, sleepEndOfTrack } = state.current;
+      // Terminou a última faixa: audição concluída
+      if (queue && index + 1 >= queue.tracks.length) markRead(queue.materialId, 'listen', 'complete');
       if (sleepEndOfTrack) { set((p) => ({ ...p, sleepEndOfTrack: false })); return; }
       if (queue && index + 1 < queue.tracks.length) void playIndex(queue, index + 1);
     };

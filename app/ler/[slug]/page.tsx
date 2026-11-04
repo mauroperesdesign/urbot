@@ -47,6 +47,7 @@ export default async function ReadPage({ params, searchParams }: { params: { slu
     ? await supabase.from('reading_progress').select('location').eq('material_id', m.id).maybeSingle()
     : { data: null };
   void supabase.from('access_events').insert({ material_id: m.id, user_id: user?.id ?? null, event: 'read' }).then(() => undefined);
+  if (user) void supabase.rpc('start_material', { m: m.id, k: 'read' }).then(() => undefined);
 
   // ?local= abre num marcador ou anotação; senão, onde a pessoa parou
   const start = searchParams.local?.slice(0, 500) || progress?.location || null;

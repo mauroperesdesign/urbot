@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { createClient } from '@/lib/supabase/client';
 import { getOfflineFile } from '@/lib/offline';
+import { markRead } from '@/lib/reads';
 import { Icon } from '../Icon';
 import { NotesPanel, useReaderNotes } from './notes';
 import { OfflineButton } from './OfflineButton';
@@ -149,6 +150,8 @@ export function PdfReader(props: {
     if (!props.canSave || status !== 'ready' || !pages) return;
     clearTimeout(saveTimer.current);
     const entry = { location: String(page), percent: Math.round((page / pages) * 10000) / 100, page };
+    // Chegou à última página: leitura concluída
+    if (page === pages) markRead(props.materialId, 'read', 'complete');
     const run = async () => {
       pendingSave.current = null;
       try {

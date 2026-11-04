@@ -496,3 +496,10 @@ table.data td { padding: 10px 8px; border-top: 1px solid var(--line); vertical-a
 .review p { margin: 8px 0 0; font-size: 14px; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
 #avaliacoes { scroll-margin-top: 120px; }
 @media (max-width: 560px) { .review-summary { grid-template-columns: 1fr; } }
+
+/* Leituras iniciadas e concluídas (página do material) */
+.read-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.read-counts div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); }
+.read-counts span { font-size: 12.5px; color: var(--muted); }
+.read-counts b { font-size: 20px; line-height: 1.1; }
+.read-counts div + div b { color: var(--primary); }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { listenCounter } from '@/lib/listening';
+import { markRead } from '@/lib/reads';
 
 const RATES = [0.75, 1, 1.25, 1.5, 2];
 
@@ -46,7 +47,8 @@ export function VideoPlayer({ src, subtitles, fileId, materialId, resumeAt, canS
         onLoadedMetadata={(e) => { const v = e.currentTarget; if (resumeAt > 5 && resumeAt < v.duration - 5) v.currentTime = resumeAt; }}
         onTimeUpdate={(e) => { listened.current.tick(e.currentTarget); if (Date.now() - lastSave.current > 10000) void save(); }}
         onSeeking={() => listened.current.reset()}
-        onPause={() => void save()} onEnded={() => void save(true)}>
+        onPause={() => void save()} onPlay={() => { if (canSave) markRead(materialId, 'watch', 'start'); }}
+        onEnded={() => { void save(true); if (canSave) markRead(materialId, 'watch', 'complete'); }}>
         {subtitles.map((t, i) => <track key={t.src} kind="subtitles" src={t.src} label={t.label} srcLang={t.lang} default={i === 0} />)}
         Seu navegador não reproduz este vídeo.
       </video>

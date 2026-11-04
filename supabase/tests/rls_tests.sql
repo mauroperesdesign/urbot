@@ -326,4 +326,44 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== leituras iniciadas e concluídas'
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  perform public.start_material('10000000-0000-0000-0000-000000000001', 'read');
+  perform public.start_material('10000000-0000-0000-0000-000000000001', 'read');
+  assert (select started from public.material_read_counts('10000000-0000-0000-0000-000000000001') where kind = 'read') = 1, 'reabrir sem concluir não conta outra vez';
+  perform public.complete_material('10000000-0000-0000-0000-000000000001', 'read');
+  perform public.complete_material('10000000-0000-0000-0000-000000000001', 'read');
+  assert (select completed from public.material_read_counts('10000000-0000-0000-0000-000000000001') where kind = 'read') = 1, 'conclusão repetida não conta duas vezes';
+  perform public.start_material('10000000-0000-0000-0000-000000000001', 'read');
+  assert (select started from public.material_read_counts('10000000-0000-0000-0000-000000000001') where kind = 'read') = 2, 'reler depois de concluir conta nova vez';
+  perform public.start_material('10000000-0000-0000-0000-000000000003', 'read');
+  perform public.start_material('10000000-0000-0000-0000-000000000001', 'hack');
+  assert (select count(*) from public.material_reads) = 2, 'não conta rascunho nem tipo inválido';
+  assert public.t_expect_error($q$insert into public.material_reads (user_id, material_id, kind) values (auth.uid(), '10000000-0000-0000-0000-000000000001', 'read')$q$), 'não grava contagem direto na tabela';
+  assert public.t_expect_error($q$update public.material_reads set completed_at = now()$q$), 'não marca conclusão direto';
+end $$;
+rollback;
+insert into public.material_reads (user_id, material_id, kind, completed_at) values ('00000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-000000000002', 'read', now());
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert (select count(*) from public.material_read_counts('10000000-0000-0000-0000-000000000001')) = 0, 'visitante vê totais do material público (zero)';
+  assert (select count(*) from public.material_read_counts('10000000-0000-0000-0000-000000000002')) = 0, 'visitante não vê totais de material restrito';
+  assert (select count(*) from public.material_reads) = 0, 'visitante não lê as linhas';
+  assert public.t_expect_error($q$select public.start_material('10000000-0000-0000-0000-000000000001', 'read')$q$), 'visitante não registra leitura';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  assert (select completed from public.material_read_counts('10000000-0000-0000-0000-000000000002')) = 1, 'membro vê os totais';
+  assert (select count(*) from public.material_reads) = 0, 'membro não vê quem leu';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

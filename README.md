@@ -34,6 +34,7 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Agenda pessoal com o calendário do ano e as datas da religião (editáveis pela equipe) | ✅ |
 | Agenda vinculada ao Google Agenda e ao Calendário do iPhone (link pessoal de assinatura, só da biblioteca para o calendário) | ✅ |
 | Avaliações em cada material: nota de 1 a 5 estrelas, resenha opcional, média e distribuição; equipe pode remover | ✅ |
+| Quantas vezes cada material foi iniciado e concluído (leitura, audição ou vídeo), na página do material e nas estatísticas da equipe | ✅ |
 | Extração de texto dos PDFs para a busca geral | ⏳ próxima etapa |
 
 ## Como colocar no ar

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Book, Rendition, NavItem } from 'epubjs';
 import { createClient } from '@/lib/supabase/client';
+import { markRead } from '@/lib/reads';
 import { getOfflineFile } from '@/lib/offline';
 import { Icon } from '../Icon';
 import { NotesPanel, useReaderNotes } from './notes';
@@ -30,6 +31,8 @@ export function EpubReader(props: {
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const materialRef = useRef(props.materialId);
   materialRef.current = props.materialId;
+  const canSaveRef = useRef(props.canSave);
+  canSaveRef.current = props.canSave;
   const pendingSave = useRef<{ location: string; percent: number | null; page: number | null } | null>(null);
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -75,8 +78,10 @@ export function EpubReader(props: {
         const r = b.renderTo(stage.current, { width: '100%', height: '100%', flow: 'paginated', spread: 'auto', allowScriptedContent: false });
         rendition.current = r;
         (Object.keys(THEMES) as Theme[]).forEach((t) => r.themes.register(t, { body: { background: THEMES[t].background, color: THEMES[t].color } }));
-        r.on('relocated', (loc: { start: { cfi: string; percentage: number } }) => {
+        r.on('relocated', (loc: { start: { cfi: string; percentage: number }; atEnd?: boolean }) => {
           setCfi(loc.start.cfi);
+          // Última página do livro: leitura concluída
+          if (loc.atEnd && canSaveRef.current) markRead(materialRef.current, 'read', 'complete');
           if (b.locations.length()) setPercent(b.locations.percentageFromCfi(loc.start.cfi));
         });
         r.on('selected', (_range: string, contents: { window: Window }) => {
