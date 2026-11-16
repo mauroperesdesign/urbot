@@ -574,3 +574,8 @@ body:has(.mini-player) .velinha-panel { bottom: 240px; max-height: calc(100dvh -
   .velinha-panel { left: auto; right: 28px; bottom: 110px; width: 390px; max-height: min(600px, calc(100dvh - 140px)); }
   body:has(.mini-player) .velinha-panel { bottom: 200px; max-height: calc(100dvh - 230px); }
 }
+
+/* Celular/tablet: campos com letra de 16px para o iPhone não dar zoom ao tocar neles */
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']), textarea, select { font-size: 16px !important; }
+}
