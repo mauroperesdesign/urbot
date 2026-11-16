@@ -2,7 +2,10 @@ import { getSession } from '@/lib/data';
 import { pickMascot } from '@/lib/mascote';
 import { PushSettings } from './PushSettings';
 
-export type StreakData = { current: number; best: number; today: boolean; week: { day: string; done: boolean }[]; seed?: string };
+export type StreakData = {
+  current: number; best: number; today: boolean; week: { day: string; done: boolean }[];
+  last_day?: string | null; last_run?: number; last_week?: number; seed?: string;
+};
 
 const WD = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const dias = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`;

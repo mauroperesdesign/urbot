@@ -1,11 +1,12 @@
 // Mascote da ofensiva (a velinha): a imagem e a frase mudam conforme a constância de estudo.
-// Nível pela % de dias estudados nos últimos 7 dias; o nível máximo é para quem mantém a
-// ofensiva por 14 dias seguidos. Quem já estudou hoje nunca vê a velinha triste.
+// Nível pela % de dias estudados nos 7 dias até o último estudo; o nível máximo é para quem
+// chegou a 10 dias seguidos. Cada dia inteiro sem estudar desce 1 nível (o dia de hoje só
+// conta quando acaba). Quem já estudou hoje nunca vê a velinha triste.
 
 export type Mood = { file: string; alt: string; phrases: string[] };
 export type Level = { id: number; name: string; moods: Mood[] };
 
-export const MAX_STREAK = 14;
+export const MAX_STREAK = 10;
 
 const m = (file: string, alt: string, phrases: string[]): Mood => ({ file: `/mascote/${file}.webp`, alt, phrases });
 
@@ -152,16 +153,28 @@ export const LEVELS: Level[] = [
   },
 ];
 
-export function mascotLevel(s: { current: number; today: boolean; week: { done: boolean }[] }) {
-  const days = s.week.filter((d) => d.done).length;
-  const pct = Math.round((days / 7) * 100);
-  let id = s.current >= MAX_STREAK ? 5 : pct >= 80 ? 4 : pct >= 50 ? 3 : pct >= 20 ? 2 : 1;
+export type MascotInput = {
+  current: number; today: boolean; week: { day: string; done: boolean }[];
+  last_day?: string | null; last_run?: number; last_week?: number;
+};
+
+const dayNum = (iso: string) => Math.floor(Date.parse(`${iso}T12:00:00Z`) / 86400000);
+
+export function mascotLevel(s: MascotInput) {
+  const todayIso = s.week[s.week.length - 1]?.day;
+  if (!s.last_day || !todayIso) return { level: LEVELS[0], pct: 0, missed: 0 };
+  // Nível que a pessoa tinha no último dia em que estudou
+  const pct = Math.round(((s.last_week ?? 0) / 7) * 100);
+  const base = (s.last_run ?? 0) >= MAX_STREAK ? 5 : pct >= 80 ? 4 : pct >= 50 ? 3 : pct >= 20 ? 2 : 1;
+  // Dias inteiros que passaram sem estudo (hoje ainda não conta)
+  const missed = Math.max(0, dayNum(todayIso) - dayNum(s.last_day) - 1);
+  let id = Math.max(1, base - missed);
   if (s.today && id < 3) id = 3;
-  return { level: LEVELS[id - 1], pct };
+  return { level: LEVELS[id - 1], pct, missed };
 }
 
 // Escolhe a imagem e a frase do dia: muda a cada dia e cada pessoa vê uma combinação diferente
-export function pickMascot(s: { current: number; today: boolean; week: { day: string; done: boolean }[] }, seed: string) {
+export function pickMascot(s: MascotInput, seed: string) {
   const { level, pct } = mascotLevel(s);
   const today = s.week[s.week.length - 1]?.day ?? '';
   const day = Math.floor(Date.parse(`${today}T12:00:00Z`) / 86400000) || 0;

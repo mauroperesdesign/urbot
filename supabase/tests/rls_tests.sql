@@ -383,6 +383,9 @@ do $$ declare s json; begin
   assert (s->>'best')::int = 3, 'recorde de 3 dias';
   assert not (s->>'today')::boolean, 'ainda não estudou hoje';
   assert json_array_length(s->'week') = 7, 'mostra 7 dias';
+  assert (s->>'last_day')::date = public.today_br() - 1, 'último dia estudado';
+  assert (s->>'last_run')::int = 2, 'dias seguidos até o último estudo';
+  assert (s->>'last_week')::int = 5, 'dias estudados nos 7 dias até o último estudo';
   insert into public.reading_progress (user_id, material_id, location) values (auth.uid(), '10000000-0000-0000-0000-000000000001', '1')
     on conflict (user_id, material_id) do update set location = excluded.location;
   s := public.my_streak();
