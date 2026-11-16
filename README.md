@@ -36,6 +36,7 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Avaliações em cada material: nota de 1 a 5 estrelas, resenha opcional, média e distribuição; equipe pode remover | ✅ |
 | Quantas vezes cada material foi iniciado e concluído (leitura, audição ou vídeo), na página do material e nas estatísticas da equipe | ✅ |
 | Ofensiva de estudos (dias seguidos, como no Duolingo) no início e no perfil, com lembrete diário por notificação (horário escolhido pela pessoa, 30 frases editáveis pela equipe) | ✅ |
+| Velinha: assistente flutuante (canto inferior direito) que recomenda livros, audiobooks e cursos do acervo; com IA (Claude) quando há chave da API (`deploy/assistente.sh`), ou busca por palavras sem ela | ✅ |
 | Extração de texto dos PDFs para a busca geral | ⏳ próxima etapa |
 
 ## Como colocar no ar

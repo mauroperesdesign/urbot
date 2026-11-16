@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
+import { VelinhaGate } from '@/components/assistente/VelinhaGate';
 import { Poppins, Literata } from 'next/font/google';
 import './globals.css';
 import { Sidebar, Topbar, currentTheme } from '@/components/Header';
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <MiniPlayer />
+          <VelinhaGate />
           <ServiceWorker />
         </PlayerProvider>
       </body>

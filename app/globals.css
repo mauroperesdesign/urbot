@@ -531,3 +531,46 @@ table.data td { padding: 10px 8px; border-top: 1px solid var(--line); vertical-a
 .push-settings .row { align-items: flex-end; }
 #ofensiva { scroll-margin-top: 120px; }
 @media (max-width: 560px) { .streak { padding: 16px; gap: 10px; } .streak-mascot { width: 92px; height: 92px; align-self: flex-start; } .streak .streak-bubble { font-size: 13px; padding: 8px 11px; } .streak-week { gap: 4px; } .streak-week li span { width: 24px; height: 24px; font-size: 11px; } }
+
+/* Velinha: assistente do acervo (chat flutuante) */
+.velinha-fab { position: fixed; right: 16px; bottom: 92px; z-index: 31; width: 62px; height: 62px; border-radius: 50%; border: 0; padding: 6px; cursor: pointer; background: var(--surface); box-shadow: 0 10px 28px rgba(8, 26, 79, 0.28), 0 0 0 3px color-mix(in srgb, #FF8A00 55%, transparent); display: grid; place-items: center; transition: transform 0.15s; }
+.velinha-fab:hover { transform: translateY(-2px) scale(1.04); }
+.velinha-fab img { width: 46px; height: 46px; object-fit: contain; }
+body:has(.mini-player) .velinha-fab { bottom: 168px; }
+.velinha-panel { position: fixed; right: 12px; left: 12px; bottom: 164px; z-index: 31; display: flex; flex-direction: column; max-height: min(560px, calc(100dvh - 190px)); border-radius: 20px; background: var(--surface); box-shadow: 0 24px 60px rgba(8, 26, 79, 0.35); overflow: hidden; border: 1px solid var(--line); }
+body:has(.mini-player) .velinha-panel { bottom: 240px; max-height: calc(100dvh - 270px); }
+.velinha-panel header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 16px; background: var(--navy); color: #fff; }
+.velinha-panel header img { width: 36px; height: 36px; object-fit: contain; background: #fff; border-radius: 50%; padding: 2px; }
+.velinha-panel header div { flex: 1; display: flex; flex-direction: column; line-height: 1.2; }
+.velinha-panel header small { font-size: 11.5px; color: var(--navy-ink); }
+.velinha-x { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.12); color: #fff; cursor: pointer; font-size: 15px; }
+.velinha-list { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 180px; }
+.velinha-msg { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 88%; }
+.velinha-msg.user { align-self: flex-end; align-items: flex-end; }
+.velinha-bubble { padding: 10px 13px; border-radius: 16px; font-size: 14px; line-height: 1.5; background: var(--surface-2); color: var(--ink); overflow-wrap: anywhere; }
+.velinha-msg.assistant .velinha-bubble { border-top-left-radius: 4px; }
+.velinha-msg.user .velinha-bubble { background: var(--primary); color: #fff; border-top-right-radius: 4px; }
+.velinha-bubble a { font-weight: 700; color: var(--primary); }
+.velinha-cards { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; max-width: 100%; }
+.velinha-card { flex: none; width: 92px; display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--ink); line-height: 1.25; }
+.velinha-card img, .velinha-nocover { width: 92px; height: 124px; border-radius: 10px; object-fit: cover; background: var(--surface-2); display: grid; place-items: center; font-size: 28px; box-shadow: 0 4px 12px rgba(8, 26, 79, 0.12); }
+.velinha-card span:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.velinha-typing { display: flex; gap: 4px; padding: 14px 16px; }
+.velinha-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: velinha-dot 1s infinite ease-in-out; }
+.velinha-typing i:nth-child(2) { animation-delay: 0.15s; }
+.velinha-typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes velinha-dot { 0%, 80%, 100% { opacity: 0.3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.velinha-ideas { display: flex; flex-wrap: wrap; gap: 6px; }
+.velinha-ideas button { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.velinha-ideas button:hover { border-color: var(--primary); color: var(--primary); }
+.velinha-form { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); align-items: flex-end; }
+.velinha-form textarea { flex: 1; resize: none; min-height: 42px; max-height: 120px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--ink); font: inherit; font-size: 14px; }
+.velinha-form .btn { min-height: 42px; width: 46px; padding: 0; }
+.velinha-note { padding: 0 14px 10px; font-size: 10.5px; color: var(--muted); }
+@media (min-width: 1024px) {
+  .velinha-fab { right: 28px; bottom: 28px; width: 68px; height: 68px; }
+  .velinha-fab img { width: 52px; height: 52px; }
+  body:has(.mini-player) .velinha-fab { bottom: 120px; }
+  .velinha-panel { left: auto; right: 28px; bottom: 110px; width: 390px; max-height: min(600px, calc(100dvh - 140px)); }
+  body:has(.mini-player) .velinha-panel { bottom: 200px; max-height: calc(100dvh - 230px); }
+}

@@ -401,6 +401,27 @@ try {
     assert(count >= 30, `frases: ${count}`);
   });
 
+  await check('Velinha: assistente flutuante sugere materiais do acervo (com links e capas)', async () => {
+    await page.goto(BASE);
+    await page.click('.velinha-fab');
+    await page.fill('#velinha-q', 'EPUB de teste');
+    await page.keyboard.press('Enter');
+    await page.locator('.velinha-typing').waitFor({ state: 'detached', timeout: 90000 });
+    const answer = page.locator('.velinha-msg.assistant').last();
+    const links = await answer.locator('.velinha-bubble a').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
+    assert(links.length >= 1 && links.every((h) => /^\/material\/[a-z0-9-]+$/.test(h)), `links: ${links}`);
+    assert(await answer.locator('.velinha-card').count() === links.length, 'cards diferentes dos links');
+    await page.click('.velinha-panel button[aria-label="Fechar"]');
+    await page.goto(`${BASE}/ler/${pdf.slug}`);
+    assert(await page.locator('.velinha-fab').count() === 0, 'Velinha aparece por cima do leitor');
+    const anon = await (await browser.newContext()).newPage();
+    await anon.goto(BASE);
+    assert(await anon.locator('.velinha-fab').count() === 0, 'visitante vê a Velinha');
+    const r = await anon.request.post(`${BASE}/api/assistente`, { data: { messages: [{ role: 'user', content: 'oi' }] } });
+    assert(r.status() === 401, `visitante usou a API (${r.status()})`);
+    await anon.context().close();
+  });
+
   await check('Membro não acessa estatísticas (nem pela função do banco)', async () => {
     const r = await page.goto(`${BASE}/admin/estatisticas`);
     assert(!page.url().includes('/admin/estatisticas') || r.status() >= 400, `membro abriu: ${page.url()}`);
