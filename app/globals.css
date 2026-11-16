@@ -507,9 +507,14 @@ table.data td { padding: 10px 8px; border-top: 1px solid var(--line); vertical-a
 /* Ofensiva de estudos */
 .streak { display: flex; gap: 16px; align-items: flex-start; padding: 18px 22px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); border-left: 4px solid #FF8A00; }
 .streak-compact { margin-bottom: 20px; align-items: center; }
-.streak-flame { font-size: 40px; line-height: 1; filter: grayscale(1) opacity(0.55); }
-.streak[data-today] .streak-flame { filter: none; animation: streak-pop 0.5s ease-out; }
-@keyframes streak-pop { from { transform: scale(0.6); } to { transform: scale(1); } }
+.streak-mascot { flex: none; width: 140px; height: 140px; object-fit: contain; align-self: center; animation: streak-pop 0.5s ease-out; }
+@keyframes streak-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.streak .streak-bubble { position: relative; align-self: flex-start; max-width: 100%; margin: 0 0 4px; padding: 10px 14px; border-radius: 16px; background: var(--surface-2); font-size: 14.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+.streak-bubble::before { content: ''; position: absolute; left: -7px; top: 14px; border: 7px solid transparent; border-left: 0; border-right-color: var(--surface-2); }
+.streak-level { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.streak[data-level='4'] .streak-level, .streak[data-level='3'] .streak-level { color: #FF8A00; }
+.streak[data-level='5'] { border-left-color: #9B4DFF; }
+.streak[data-level='5'] .streak-level { color: #9B4DFF; }
 .streak-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .streak h2 { font-size: 17px; margin: 0; font-weight: 600; }
 .streak h2 b { font-size: 22px; color: #FF8A00; }
@@ -525,4 +530,4 @@ table.data td { padding: 10px 8px; border-top: 1px solid var(--line); vertical-a
 .push-settings p { font-size: 13px; }
 .push-settings .row { align-items: flex-end; }
 #ofensiva { scroll-margin-top: 120px; }
-@media (max-width: 560px) { .streak { padding: 16px; gap: 12px; } .streak-flame { font-size: 32px; } .streak-week li span { width: 26px; height: 26px; } }
+@media (max-width: 560px) { .streak { padding: 16px; gap: 10px; } .streak-mascot { width: 92px; height: 92px; align-self: flex-start; } .streak .streak-bubble { font-size: 13px; padding: 8px 11px; } .streak-week { gap: 4px; } .streak-week li span { width: 24px; height: 24px; font-size: 11px; } }

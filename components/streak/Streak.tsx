@@ -1,7 +1,8 @@
 import { getSession } from '@/lib/data';
+import { pickMascot } from '@/lib/mascote';
 import { PushSettings } from './PushSettings';
 
-export type StreakData = { current: number; best: number; today: boolean; week: { day: string; done: boolean }[] };
+export type StreakData = { current: number; best: number; today: boolean; week: { day: string; done: boolean }[]; seed?: string };
 
 const WD = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 const dias = (n: number) => `${n} ${n === 1 ? 'dia' : 'dias'}`;
@@ -10,7 +11,7 @@ export async function loadStreak() {
   const { supabase, user } = await getSession();
   if (!user) return null;
   const { data } = await supabase.rpc('my_streak');
-  return (data as StreakData | null) ?? null;
+  return data ? { ...(data as StreakData), seed: user.id } : null;
 }
 
 function hint(s: StreakData) {
@@ -19,12 +20,16 @@ function hint(s: StreakData) {
   return 'Leia, ouça ou assista algo hoje para começar uma ofensiva.';
 }
 
-// Ofensiva de estudos: dias seguidos estudando, com os últimos 7 dias marcados
+// Ofensiva de estudos: dias seguidos estudando, com os últimos 7 dias marcados e a velinha,
+// que muda de humor conforme a constância
 export function StreakCard({ s, compact = false, children }: { s: StreakData; compact?: boolean; children?: React.ReactNode }) {
+  const { level, mood, phrase } = pickMascot(s, s.seed ?? '');
   return (
-    <section className={`streak${compact ? ' streak-compact' : ''}`} data-today={s.today ? 'true' : undefined} aria-labelledby="h-ofensiva" id="ofensiva">
-      <div className="streak-flame" aria-hidden="true">🔥</div>
+    <section className={`streak${compact ? ' streak-compact' : ''}`} data-today={s.today ? 'true' : undefined} data-level={level.id} aria-labelledby="h-ofensiva" id="ofensiva">
+      <img className="streak-mascot" src={mood.file} alt={mood.alt} width={140} height={140} />
       <div className="streak-main">
+        <p className="streak-bubble">{phrase}</p>
+        <span className="streak-level">{level.name}</span>
         <h2 id="h-ofensiva"><b>{dias(s.current)}</b> de ofensiva</h2>
         <p>{hint(s)}</p>
         <ol className="streak-week" aria-label="Últimos 7 dias">

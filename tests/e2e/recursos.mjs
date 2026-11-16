@@ -390,6 +390,10 @@ try {
     assert(/\d+ dias? de ofensiva/.test(await home.innerText()), 'sem contagem de dias');
     assert(await page.locator('.streak-week li').count() === 7, 'semana incompleta');
     assert(await page.locator('.streak-week li[data-today][data-done]').count() === 1, 'hoje não marcado');
+    assert(Number(await home.getAttribute('data-level')) >= 3, 'estudou hoje mas a velinha está triste');
+    assert((await page.locator('.streak-bubble').innerText()).trim().length > 5, 'velinha sem frase');
+    const img = page.locator('img.streak-mascot');
+    assert(await img.evaluate((i) => i.complete && i.naturalWidth > 0), 'imagem da velinha não carregou');
     await page.goto(`${BASE}/perfil#ofensiva`);
     await page.locator('#ofensiva .push-settings').waitFor();
     assert((await page.locator('#ofensiva').innerText()).includes('Seu recorde'), 'sem recorde');
