@@ -126,7 +126,7 @@ await check(8, 'Ler um PDF diretamente no site', async () => {
   await page.getByRole('link', { name: /Ler agora/ }).click();
   await page.waitForURL(`**/ler/${slug}`);
   await page.getByText('página 1 de 9').waitFor({ timeout: 30000 });
-  const painted = await page.locator('canvas').evaluate((c) => c.width > 0 && c.getContext('2d').getImageData(c.width / 2, c.height / 3, 1, 1).data[3] > 0);
+  const painted = await page.locator('canvas[aria-label^="Página"]').evaluate((c) => c.width > 0 && c.getContext('2d').getImageData(c.width / 2, c.height / 3, 1, 1).data[3] > 0);
   assert(painted, 'canvas do PDF não foi desenhado');
   await page.getByRole('button', { name: 'Próxima' }).click();
   await page.getByRole('button', { name: 'Próxima' }).click();

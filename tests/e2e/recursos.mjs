@@ -382,6 +382,21 @@ try {
     assert(count === 0, 'avaliação não foi removida');
   });
 
+  await check('Ofensiva: estudar hoje acende a chama no início e no perfil, com lembrete diário', async () => {
+    await page.goto(BASE);
+    const home = page.locator('.streak');
+    await home.waitFor();
+    assert(await home.getAttribute('data-today') === 'true', 'estudou hoje mas a chama não acendeu');
+    assert(/\d+ dias? de ofensiva/.test(await home.innerText()), 'sem contagem de dias');
+    assert(await page.locator('.streak-week li').count() === 7, 'semana incompleta');
+    assert(await page.locator('.streak-week li[data-today][data-done]').count() === 1, 'hoje não marcado');
+    await page.goto(`${BASE}/perfil#ofensiva`);
+    await page.locator('#ofensiva .push-settings').waitFor();
+    assert((await page.locator('#ofensiva').innerText()).includes('Seu recorde'), 'sem recorde');
+    const { count } = await sb.from('streak_phrases').select('id', { count: 'exact', head: true }).eq('active', true);
+    assert(count >= 30, `frases: ${count}`);
+  });
+
   await check('Membro não acessa estatísticas (nem pela função do banco)', async () => {
     const r = await page.goto(`${BASE}/admin/estatisticas`);
     assert(!page.url().includes('/admin/estatisticas') || r.status() >= 400, `membro abriu: ${page.url()}`);

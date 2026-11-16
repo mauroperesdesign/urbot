@@ -52,3 +52,32 @@ wait_for() {
   done
   die "tempo esgotado esperando: $what"
 }
+
+# Lembrete diário da ofensiva (Web Push): cria as chaves VAPID uma vez e agenda o envio de hora em hora.
+# A chave privada fica só em $SECRETS; a pública vai para o .env.local do site.
+setup_push() {
+  if [ -z "$(get_env "$SECRETS" VAPID_PRIVATE_KEY)" ]; then
+    local keys
+    keys=$(node -e '
+      const { generateKeyPairSync } = require("crypto");
+      const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+      const j = publicKey.export({ format: "jwk" });
+      const b = (s) => Buffer.from(s, "base64url");
+      const pub = Buffer.concat([Buffer.from([4]), b(j.x), b(j.y)]).toString("base64url");
+      console.log(pub + " " + privateKey.export({ format: "jwk" }).d);')
+    umask 077
+    set_env "$SECRETS" VAPID_PUBLIC_KEY "${keys%% *}"
+    set_env "$SECRETS" VAPID_PRIVATE_KEY "${keys##* }"
+    umask 022
+  fi
+  local email
+  email=$(get_env "$APP/.env.local" NEXT_PUBLIC_CONTACT_EMAIL)
+  set_env "$SECRETS" VAPID_SUBJECT "mailto:${email:-contato@example.com}"
+  set_env "$APP/.env.local" VAPID_PUBLIC_KEY "$(get_env "$SECRETS" VAPID_PUBLIC_KEY)"
+  chown biblioteca:biblioteca "$APP/.env.local"
+  cat > /etc/cron.d/biblioteca-ofensiva <<CRON
+# Lembrete diário da ofensiva (cada aparelho recebe no horário escolhido, 1x por dia)
+1 * * * * root cd $APP && set -a && . $SECRETS && set +a && sudo -E -u biblioteca node scripts/notificar-ofensiva.mjs >> /var/log/biblioteca-ofensiva.log 2>&1
+CRON
+  chmod 644 /etc/cron.d/biblioteca-ofensiva
+}

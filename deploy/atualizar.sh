@@ -23,6 +23,9 @@ fi
 say "Aplicando migrações novas do banco"
 apply_migrations
 
+say "Preparando o lembrete diário da ofensiva"
+setup_push
+
 say "Compilando"
 sudo -u biblioteca -H bash -c "cd '$APP' && npm ci --no-audit --no-fund --loglevel=error && NEXT_TELEMETRY_DISABLED=1 npm run build"
 systemctl restart biblioteca

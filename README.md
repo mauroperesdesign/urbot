@@ -35,6 +35,7 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Agenda vinculada ao Google Agenda e ao Calendário do iPhone (link pessoal de assinatura, só da biblioteca para o calendário) | ✅ |
 | Avaliações em cada material: nota de 1 a 5 estrelas, resenha opcional, média e distribuição; equipe pode remover | ✅ |
 | Quantas vezes cada material foi iniciado e concluído (leitura, audição ou vídeo), na página do material e nas estatísticas da equipe | ✅ |
+| Ofensiva de estudos (dias seguidos, como no Duolingo) no início e no perfil, com lembrete diário por notificação (horário escolhido pela pessoa, 30 frases editáveis pela equipe) | ✅ |
 | Extração de texto dos PDFs para a busca geral | ⏳ próxima etapa |
 
 ## Como colocar no ar

@@ -52,3 +52,27 @@ self.addEventListener('fetch', (event) => {
     }).catch(async () => (await caches.match(url.pathname)) || (await caches.match('/offline')) || Response.error()));
   }
 });
+
+// Lembrete diário da ofensiva (enviado pelo servidor 1x por dia, no horário escolhido)
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data && event.data.text() }; }
+  event.waitUntil(self.registration.showNotification(data.title || 'Biblioteca Umbandista', {
+    body: data.body || 'Que tal estudar um pouco hoje?',
+    icon: '/icon-entenda-192.png',
+    badge: '/favicon-entenda.png',
+    tag: 'ofensiva',
+    renotify: true,
+    data: { url: data.url || '/' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const open = list.find((c) => c.url.startsWith(self.location.origin));
+    if (open) { open.focus(); return open.navigate(url).catch(() => undefined); }
+    return self.clients.openWindow(url);
+  }));
+});

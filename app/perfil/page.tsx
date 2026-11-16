@@ -6,6 +6,7 @@ import { BookCard } from '@/components/Cover';
 import { Icon } from '@/components/Icon';
 import { VoicePlayer } from '@/components/reader/VoiceNote';
 import type { MaterialType } from '@/lib/types';
+import { StreakPanel } from '@/components/streak/Streak';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Meu perfil', robots: { index: false } };
@@ -58,6 +59,8 @@ export default async function Profile() {
         </div>
         <Link href="/conta" className="btn" style={{ alignSelf: 'center' }}><Icon name="settings" size={16} /> Conta e senha</Link>
       </section>
+
+      <StreakPanel />
 
       <div className="panel stat-grid">
         <div className="stat-tile"><span>Páginas lidas</span><b>{pages.toLocaleString('pt-BR')}</b><small>cada página conta uma vez</small></div>

@@ -1,6 +1,6 @@
 import { requireStaff } from '@/lib/data';
 import { ConfirmButton } from '@/components/ConfirmButton';
-import { addCalendarDate, addMessage, deleteCalendarDate, deleteMessage, toggleMessage } from '../actions';
+import { addCalendarDate, addMessage, addPhrase, deleteCalendarDate, deleteMessage, deletePhrase, toggleMessage, togglePhrase } from '../actions';
 
 export const dynamic = 'force-dynamic';
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -8,10 +8,12 @@ const ENTITIES = ['Preto Velho', 'Caboclo', 'Exu', 'Pombagira', 'Baiano', 'Marin
 
 export default async function CalendarAdmin() {
   const { supabase } = await requireStaff();
-  const [{ data: dates }, { data: messages }] = await Promise.all([
+  const [{ data: dates }, { data: messages }, { data: phrases }] = await Promise.all([
     supabase.from('calendar_dates').select('id, month, day, title, description, greeting').order('month').order('day'),
     supabase.from('daily_messages').select('id, entity, text, active').order('entity').order('created_at'),
+    supabase.from('streak_phrases').select('id, text, active').order('created_at').order('id'),
   ]);
+  const { data: subscribers } = await supabase.rpc('push_subscriber_count');
   return (
     <div className="stack" style={{ ['--gap' as string]: '24px' }}>
       <h1 className="page-title">Calendário e mensagens</h1>
@@ -61,6 +63,29 @@ export default async function CalendarAdmin() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="card stack" style={{ padding: 20 }} aria-labelledby="h-frases">
+        <h2 id="h-frases" style={{ fontSize: 18 }}>Frases do lembrete diário (ofensiva)</h2>
+        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+          Quem ligou o lembrete recebe 1 notificação por dia com uma destas frases, que se revezam. {subscribers ?? 0} {subscribers === 1 ? 'aparelho inscrito' : 'aparelhos inscritos'}.
+        </p>
+        <form action={addPhrase} className="row" style={{ alignItems: 'flex-end' }}>
+          <label className="field" style={{ flex: '1 1 320px' }}>Nova frase<input name="text" minLength={10} maxLength={200} required placeholder="Ex.: Quem estuda o fundamento firma o próprio ponto." /></label>
+          <button className="btn btn-primary" type="submit">Adicionar frase</button>
+        </form>
+        <ol className="stack" style={{ margin: 0, paddingLeft: 22, ['--gap' as string]: '6px' }}>
+          {(phrases ?? []).map((f) => (
+            <li key={f.id} style={{ opacity: f.active ? 1 : 0.55 }}>
+              <div className="row" style={{ background: 'var(--surface-2)', borderRadius: 12, padding: '8px 12px' }}>
+                <span style={{ flex: '1 1 300px', fontSize: 13.5 }}>{f.text}</span>
+                <form action={togglePhrase}><input type="hidden" name="id" value={f.id} /><input type="hidden" name="active" value={f.active ? '0' : '1'} />
+                  <button className="btn btn-ghost" type="submit" style={{ minHeight: 32 }}>{f.active ? 'Pausar' : 'Ativar'}</button></form>
+                <form action={deletePhrase}><input type="hidden" name="id" value={f.id} /><ConfirmButton className="btn btn-ghost btn-danger" message="Apagar esta frase?">Apagar</ConfirmButton></form>
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
     </div>
   );

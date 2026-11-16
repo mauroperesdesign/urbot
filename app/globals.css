@@ -503,3 +503,26 @@ table.data td { padding: 10px 8px; border-top: 1px solid var(--line); vertical-a
 .read-counts span { font-size: 12.5px; color: var(--muted); }
 .read-counts b { font-size: 20px; line-height: 1.1; }
 .read-counts div + div b { color: var(--primary); }
+
+/* Ofensiva de estudos */
+.streak { display: flex; gap: 16px; align-items: flex-start; padding: 18px 22px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); border-left: 4px solid #FF8A00; }
+.streak-compact { margin-bottom: 20px; align-items: center; }
+.streak-flame { font-size: 40px; line-height: 1; filter: grayscale(1) opacity(0.55); }
+.streak[data-today] .streak-flame { filter: none; animation: streak-pop 0.5s ease-out; }
+@keyframes streak-pop { from { transform: scale(0.6); } to { transform: scale(1); } }
+.streak-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.streak h2 { font-size: 17px; margin: 0; font-weight: 600; }
+.streak h2 b { font-size: 22px; color: #FF8A00; }
+.streak p { margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.streak-week { list-style: none; margin: 4px 0 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.streak-week li { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.streak-week li span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--surface-2); border: 2px solid var(--line); color: #fff; }
+.streak-week li[data-done] span { background: #FF8A00; border-color: #FF8A00; }
+.streak-week li[data-today] span { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px color-mix(in srgb, #FF8A00 45%, transparent); }
+.streak-week small { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.streak-link { font-size: 13px; font-weight: 600; }
+.push-settings { margin-top: 8px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+.push-settings p { font-size: 13px; }
+.push-settings .row { align-items: flex-end; }
+#ofensiva { scroll-margin-top: 120px; }
+@media (max-width: 560px) { .streak { padding: 16px; gap: 12px; } .streak-flame { font-size: 32px; } .streak-week li span { width: 26px; height: 26px; } }

@@ -6,6 +6,7 @@ import { HomeBrowser, type HomeItem } from './HomeBrowser';
 import { DailyBanner } from './DailyBanner';
 import { readingProgress, listeningProgress } from '@/lib/progress';
 import { Welcome } from './Welcome';
+import { HomeStreak } from './HomeStreak';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,5 +62,5 @@ export default async function Home() {
       </>
     );
   }
-  return <HomeBrowser items={items} roots={roots} reading={reading} listening={listening} pendingApproval={!!pendingApproval} top={<DailyBanner />} />;
+  return <HomeBrowser items={items} roots={roots} reading={reading} listening={listening} pendingApproval={!!pendingApproval} top={<><DailyBanner /><HomeStreak /></>} />;
 }

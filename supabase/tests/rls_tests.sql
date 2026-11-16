@@ -366,4 +366,59 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== ofensiva e lembrete diário'
+delete from public.study_days;
+insert into public.study_days (user_id, day) values
+  ('00000000-0000-0000-0000-00000000000c', public.today_br()),
+  ('00000000-0000-0000-0000-00000000000b', public.today_br() - 1), ('00000000-0000-0000-0000-00000000000b', public.today_br() - 2),
+  ('00000000-0000-0000-0000-00000000000b', public.today_br() - 5), ('00000000-0000-0000-0000-00000000000b', public.today_br() - 6),
+  ('00000000-0000-0000-0000-00000000000b', public.today_br() - 7);
+insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ('00000000-0000-0000-0000-00000000000c', 'https://push.example/outro', 'k', 'a');
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ declare s json; begin
+  s := public.my_streak();
+  assert (s->>'current')::int = 2, 'ofensiva continua viva até o fim de hoje (estudou ontem e anteontem)';
+  assert (s->>'best')::int = 3, 'recorde de 3 dias';
+  assert not (s->>'today')::boolean, 'ainda não estudou hoje';
+  assert json_array_length(s->'week') = 7, 'mostra 7 dias';
+  insert into public.reading_progress (user_id, material_id, location) values (auth.uid(), '10000000-0000-0000-0000-000000000001', '1')
+    on conflict (user_id, material_id) do update set location = excluded.location;
+  s := public.my_streak();
+  assert (s->>'current')::int = 3 and (s->>'today')::boolean, 'ler hoje soma um dia na ofensiva';
+  assert (select count(*) from public.study_days) = 6, 'vê só os próprios dias';
+  assert public.t_expect_error($q$insert into public.study_days (user_id, day) values (auth.uid(), public.today_br() - 3)$q$), 'não marca dia estudado à mão';
+  assert public.t_expect_error($q$select public.streak_of('00000000-0000-0000-0000-00000000000c')$q$), 'não consulta a ofensiva de outra pessoa';
+  assert (select count(*) from public.push_subscriptions) = 0, 'não vê inscrições de outra pessoa';
+  insert into public.push_subscriptions (user_id, endpoint, p256dh, auth, hour) values (auth.uid(), 'https://push.example/meu', 'k', 'a', 8);
+  update public.push_subscriptions set hour = 21 where user_id = auth.uid();
+  assert (select hour from public.push_subscriptions) = 21, 'muda o próprio horário';
+  assert public.t_expect_error($q$update public.push_subscriptions set last_sent_on = current_date$q$), 'não mexe no controle de envio';
+  assert public.t_expect_error($q$insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ('00000000-0000-0000-0000-00000000000c', 'https://push.example/x', 'k', 'a')$q$), 'não inscreve outra pessoa';
+  assert public.t_expect_error($q$insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values (auth.uid(), 'http://inseguro', 'k', 'a')$q$), 'só endereço https';
+  assert (select count(*) from public.streak_phrases) >= 30, 'lê as 30 frases';
+  assert public.t_expect_error($q$insert into public.streak_phrases (text) values ('frase inventada pelo membro')$q$), 'membro não cria frase';
+  assert public.push_subscriber_count() is null, 'membro não vê o total de inscritos';
+end $$;
+rollback;
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert public.t_expect_error($q$select public.my_streak()$q$), 'visitante não tem ofensiva';
+  assert (select count(*) from public.streak_phrases) = 0, 'visitante não lê as frases';
+  assert (select count(*) from public.push_subscriptions) = 0, 'visitante não vê inscrições';
+end $$;
+rollback;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+do $$ begin
+  assert public.push_subscriber_count() = 1, 'equipe vê quantos aparelhos ligaram o lembrete';
+  assert (select count(*) from public.push_subscriptions) = 0, 'equipe não vê os endereços de push';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

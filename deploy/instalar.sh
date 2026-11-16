@@ -103,6 +103,7 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:8000
 SUPABASE_SERVICE_ROLE_KEY=$SERVICE
 EOF
 umask 022
+setup_push
 chown -R biblioteca:biblioteca "$APP"
 sudo -u biblioteca -H bash -c "cd '$APP' && npm ci --no-audit --no-fund --loglevel=error && NEXT_TELEMETRY_DISABLED=1 npm run build" \
   || die "falha ao compilar o site"

@@ -322,3 +322,23 @@ export async function deleteMessage(form: FormData) {
   await supabase.from('daily_messages').delete().eq('id', String(form.get('id')));
   revalidatePath('/admin/calendario');
 }
+
+// Frases do lembrete diário da ofensiva (notificação)
+export async function addPhrase(form: FormData) {
+  const { supabase } = await requireStaff();
+  const text = str(form, 'text', 200);
+  if (text && text.length >= 10) await supabase.from('streak_phrases').insert({ text });
+  revalidatePath('/admin/calendario');
+}
+
+export async function togglePhrase(form: FormData) {
+  const { supabase } = await requireStaff();
+  await supabase.from('streak_phrases').update({ active: form.get('active') === '1' }).eq('id', String(form.get('id')));
+  revalidatePath('/admin/calendario');
+}
+
+export async function deletePhrase(form: FormData) {
+  const { supabase } = await requireStaff();
+  await supabase.from('streak_phrases').delete().eq('id', String(form.get('id')));
+  revalidatePath('/admin/calendario');
+}
