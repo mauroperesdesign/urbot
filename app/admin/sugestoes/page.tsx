@@ -24,8 +24,9 @@ export default async function SugestoesAdmin({ searchParams }: { searchParams: {
   const list = (data ?? []) as Suggestion[];
   const n = (id: string) => (counts ?? []).filter((c) => id === 'todas' || c.status === id).length;
   const ids = Array.from(new Set(list.map((s) => s.user_id)));
-  const { data: people } = ids.length ? await supabase.from('profiles').select('id, display_name, email').in('id', ids) : { data: [] };
+  const { data: people } = ids.length ? await supabase.from('profiles').select('id, display_name, email, approved, role').in('id', ids) : { data: [] };
   const who = new Map((people ?? []).map((p) => [p.id, p.display_name || p.email || 'Membro']));
+  const waiting = new Set((people ?? []).filter((p) => !p.approved && p.role === 'member').map((p) => p.id));
   const date = (s: string) => new Date(s).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
@@ -51,7 +52,7 @@ export default async function SugestoesAdmin({ searchParams }: { searchParams: {
                   <div style={{ minWidth: 0 }}>
                     <b style={{ fontSize: 16 }}>{s.title}</b>
                     <small className="muted" style={{ display: 'block' }}>
-                      {SUGGESTION_KINDS[s.kind] ?? s.kind}{s.author ? ` · ${s.author}` : ''} · por <b>{who.get(s.user_id) ?? 'Membro'}</b> em {date(s.created_at)}
+                      {SUGGESTION_KINDS[s.kind] ?? s.kind}{s.author ? ` · ${s.author}` : ''} · por <b>{who.get(s.user_id) ?? 'Membro'}</b>{waiting.has(s.user_id) ? ' (cadastro aguardando aprovação)' : ''} em {date(s.created_at)}
                     </small>
                   </div>
                   <span className={st.tone}>{st.label}</span>

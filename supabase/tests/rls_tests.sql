@@ -480,7 +480,8 @@ set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
 do $$ begin
   assert (select count(*) from public.material_suggestions) = 0, 'não vê sugestões de outras pessoas';
-  assert public.t_expect_error($q$insert into public.material_suggestions (user_id, title) values (auth.uid(), 'de quem não foi aprovado')$q$), 'cadastro não aprovado não sugere';
+  insert into public.material_suggestions (user_id, title) values (auth.uid(), 'de quem aguarda aprovação');
+  assert (select count(*) from public.material_suggestions) = 1, 'quem aguarda aprovação também sugere (e só vê a sua)';
 end $$;
 rollback;
 begin;

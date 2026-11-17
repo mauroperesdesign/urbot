@@ -60,7 +60,10 @@ export default async function Profile() {
           <h1 className="page-title-xl">{name}</h1>
           <span className="profile-sub">{role}{since ? ` · na biblioteca desde ${since}` : ''}</span>
         </div>
-        <Link href="/conta" className="btn" style={{ alignSelf: 'center' }}><Icon name="settings" size={16} /> Conta e senha</Link>
+        <div className="row" style={{ alignSelf: 'center' }}>
+          <Link href="/sugerir" className="btn">💡 Sugerir material</Link>
+          <Link href="/conta" className="btn"><Icon name="settings" size={16} /> Conta e senha</Link>
+        </div>
       </section>
 
       <StreakPanel />

@@ -86,6 +86,7 @@ export function HomeBrowser({ items, roots, reading = [], listening = [], pendin
         {pendingApproval ? (
           <p className="alert" style={{ margin: '0 0 16px' }}>
             Seu cadastro está aguardando aprovação da administração. Até lá, você vê apenas os materiais públicos.
+            {' '}Enquanto isso, conte pra gente <Link href="/sugerir" style={{ fontWeight: 700 }}>o que você gostaria de estudar 💡</Link>
           </p>
         ) : null}
         {top}

@@ -14,8 +14,7 @@ const ERRORS: Record<string, string> = {
 };
 
 export default async function Sugerir({ searchParams }: { searchParams: { enviada?: string; erro?: string } }) {
-  const { supabase, profile } = await requireUser('/sugerir');
-  const canSend = !!profile && (profile.approved || ['editor', 'admin'].includes(profile.role));
+  const { supabase } = await requireUser('/sugerir');
   const { data } = await supabase.from('material_suggestions').select('*').order('created_at', { ascending: false }).limit(100);
   const mine = (data ?? []) as Suggestion[];
   const date = (s: string) => new Date(s).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -33,7 +32,7 @@ export default async function Sugerir({ searchParams }: { searchParams: { enviad
       <section className="panel stack" id="form" aria-labelledby="h-form">
         <h2 id="h-form" style={{ fontSize: 18 }}>Nova sugestão</h2>
         {searchParams.erro ? <p className="alert alert-error" role="alert" style={{ margin: 0 }}>{ERRORS[searchParams.erro] ?? ERRORS.falha}</p> : null}
-        {canSend ? (
+        {(
           <form action={sendSuggestion} className="stack" style={{ ['--gap' as string]: '12px' }}>
             <label className="field">Título do material *<input name="title" required minLength={2} maxLength={200} placeholder="Ex.: Umbanda de Todos Nós" /></label>
             <div className="sug-grid">
@@ -49,7 +48,7 @@ export default async function Sugerir({ searchParams }: { searchParams: { enviad
             <small className="muted">Lembre que a biblioteca respeita direitos autorais: a equipe verifica se o material pode ser disponibilizado.</small>
             <button className="btn btn-primary" type="submit" style={{ alignSelf: 'flex-start' }}>Enviar sugestão</button>
           </form>
-        ) : <p className="muted" style={{ margin: 0 }}>Você poderá sugerir materiais depois que a administração aprovar o seu cadastro.</p>}
+        )}
       </section>
 
       <section className="panel stack" id="minhas" aria-labelledby="h-minhas">
