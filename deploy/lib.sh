@@ -94,3 +94,33 @@ setup_audio_tools() {
       && chmod 755 /usr/local/bin/yt-dlp || warn "não foi possível instalar o yt-dlp (importar do YouTube não vai funcionar)"
   fi
 }
+
+# Transcrição automática (letras dos pontos e notas de voz): Whisper no próprio servidor, sem custo por uso.
+# Instala uma vez (pode levar alguns minutos e ~1 GB de disco) e agenda a fila de minuto em minuto.
+setup_transcriber() {
+  local W="$BASE/whisper" mem model threads
+  apt-get install -y -qq python3-venv >/dev/null 2>&1 || { apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq python3-venv >/dev/null 2>&1; } || true
+  if [ ! -x "$W/venv/bin/python" ]; then
+    python3 -m venv "$W/venv" || { warn "não foi possível criar o ambiente da transcrição (python3-venv)"; return 0; }
+  fi
+  "$W/venv/bin/pip" install -q --disable-pip-version-check "faster-whisper==1.1.1" requests >/dev/null 2>&1 \
+    || { warn "não foi possível instalar o Whisper (transcrição desligada por enquanto)"; return 0; }
+  # Modelo "small" (melhor) se houver memória; "base" em servidores pequenos
+  mem=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
+  model=small; [ "${mem:-0}" -lt 3000 ] && model=base
+  threads=$(( $(nproc) > 2 ? $(nproc) - 1 : 1 ))
+  set_env "$SECRETS" WHISPER_PY "$W/venv/bin/python"
+  set_env "$SECRETS" WHISPER_DIR "$W/models"
+  set_env "$SECRETS" WHISPER_THREADS "$threads"
+  [ -n "$(get_env "$SECRETS" WHISPER_MODEL)" ] || set_env "$SECRETS" WHISPER_MODEL "$model"
+  mkdir -p "$W/models"
+  chown -R biblioteca:biblioteca "$W"
+  # Baixa o modelo agora (só na primeira vez demora)
+  sudo -u biblioteca -H "$W/venv/bin/python" -c "from faster_whisper import WhisperModel; WhisperModel('$(get_env "$SECRETS" WHISPER_MODEL)', device='cpu', compute_type='int8', download_root='$W/models')" >/dev/null 2>&1 \
+    || warn "não foi possível baixar o modelo do Whisper agora; ele será baixado na primeira transcrição"
+  cat > /etc/cron.d/biblioteca-transcricao <<CRON
+# Transcrição dos pontos cantados e das notas de voz (fila; a trava evita duas rodadas ao mesmo tempo)
+* * * * * root flock -n /run/biblioteca-transcricao.lock sh -c 'cd $APP && set -a && . $SECRETS && set +a && sudo -E -u biblioteca node scripts/transcrever.mjs' >> /var/log/biblioteca-transcricao.log 2>&1
+CRON
+  chmod 644 /etc/cron.d/biblioteca-transcricao
+}

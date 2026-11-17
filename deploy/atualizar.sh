@@ -29,6 +29,9 @@ setup_push
 say "Atualizando o baixador de áudio dos pontos cantados"
 setup_audio_tools
 
+say "Preparando a transcrição automática (letras e notas de voz)"
+setup_transcriber
+
 say "Compilando"
 sudo -u biblioteca -H bash -c "cd '$APP' && npm ci --no-audit --no-fund --loglevel=error && NEXT_TELEMETRY_DISABLED=1 npm run build"
 systemctl restart biblioteca

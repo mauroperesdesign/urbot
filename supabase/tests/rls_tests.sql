@@ -512,4 +512,29 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== transcrição de notas de voz e pontos'
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ declare nid uuid; begin
+  insert into public.annotations (user_id, material_id, location, audio_path) values (auth.uid(), '10000000-0000-0000-0000-000000000001', '1', auth.uid()::text || '/m/v.webm') returning id into nid;
+  assert (select transcript_status from public.annotations where id = nid) = 'pendente', 'nota de voz entra na fila de transcrição';
+  insert into public.annotations (user_id, material_id, location, note) values (auth.uid(), '10000000-0000-0000-0000-000000000001', '2', 'só texto');
+  assert (select count(*) from public.annotations where transcript_status is not null) = 1, 'nota só de texto não vai para a fila';
+  update public.annotations set audio_path = null where id = nid;
+  assert (select transcript_status from public.annotations where id = nid) is null, 'sem áudio, sem transcrição';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+do $$ begin
+  insert into public.material_categories (material_id, category_id) select '10000000-0000-0000-0000-000000000001', id from public.categories where slug = 'pontos-de-ogum';
+  insert into public.files (material_id, role, path, mime_type) values ('10000000-0000-0000-0000-000000000001', 'track', 'pontos/x.mp3', 'audio/mpeg');
+  assert (select transcript_status from public.files where path = 'pontos/x.mp3') = 'pendente', 'faixa de ponto cantado entra na fila';
+  insert into public.files (material_id, role, path, mime_type) values ('10000000-0000-0000-0000-000000000002', 'track', 'livro/x.mp3', 'audio/mpeg');
+  assert (select transcript_status from public.files where path = 'livro/x.mp3') is null, 'faixa de audiobook comum não é transcrita';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

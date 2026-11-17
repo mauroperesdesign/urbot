@@ -694,3 +694,9 @@ body:has(.mini-player) .velinha-panel { bottom: 240px; max-height: calc(100dvh -
 .ponto-source .chip:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
 .ponto-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; cursor: pointer; }
 .ponto-check input { flex: none; width: 18px; height: 18px; margin-top: 1px; accent-color: var(--primary); }
+
+/* Transcrição das notas de voz e busca nas anotações */
+.voice-transcript { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); background: color-mix(in srgb, var(--primary) 6%, transparent); border-radius: 8px; padding: 6px 10px; }
+.voice-transcript.pending { color: var(--muted); font-style: italic; background: none; padding: 0; }
+.note-search { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+.note-search input { flex: 1 1 240px; min-height: 42px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--ink); font: inherit; font-size: 14px; }

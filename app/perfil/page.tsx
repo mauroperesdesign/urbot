@@ -4,24 +4,28 @@ import { requireUser, withCoverUrls } from '@/lib/data';
 import { readingProgress, listeningProgress } from '@/lib/progress';
 import { BookCard } from '@/components/Cover';
 import { Icon } from '@/components/Icon';
-import { VoicePlayer } from '@/components/reader/VoiceNote';
+import { Transcript, VoicePlayer } from '@/components/reader/VoiceNote';
 import type { MaterialType } from '@/lib/types';
 import { StreakPanel } from '@/components/streak/Streak';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Meu perfil', robots: { index: false } };
 
-type NoteRow = { id: string; location: string; quote: string | null; note: string | null; audio_path: string | null; created_at: string; material_id: string };
+type NoteRow = {
+  id: string; location: string; quote: string | null; note: string | null; audio_path: string | null; created_at: string; material_id: string;
+  transcript: string | null; transcript_status: string | null;
+};
+const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 type MarkRow = { id: string; location: string; label: string | null; material_id: string };
 
 const where = (loc: string) => (loc.startsWith('epubcfi(') ? 'trecho do livro' : `página ${loc}`);
 
-export default async function Profile() {
+export default async function Profile({ searchParams }: { searchParams: { busca?: string } }) {
   const { supabase, user, profile } = await requireUser('/perfil');
   const [pagesRes, listenRes, notesRes, marksRes, reading, listening, meRes, cadRes] = await Promise.all([
     supabase.from('reading_pages').select('page', { count: 'exact', head: true }),
     supabase.from('listening_time').select('seconds'),
-    supabase.from('annotations').select('id, location, quote, note, audio_path, created_at, material_id').order('created_at').limit(1000),
+    supabase.from('annotations').select('id, location, quote, note, audio_path, created_at, material_id, transcript, transcript_status').order('created_at').limit(1000),
     supabase.from('bookmarks').select('id, location, label, material_id').order('created_at').limit(1000),
     readingProgress(30),
     listeningProgress(30),
@@ -32,8 +36,14 @@ export default async function Profile() {
     .map((f) => ({ id: f.id, title: f.title, n: f.content?.items?.length ?? 0 }));
   const pages = pagesRes.count ?? 0;
   const minutes = Math.floor((listenRes.data ?? []).reduce((a, r) => a + (r.seconds ?? 0), 0) / 60);
-  const notes = (notesRes.data ?? []) as NoteRow[];
-  const marks = (marksRes.data ?? []) as MarkRow[];
+  const allNotes = (notesRes.data ?? []) as NoteRow[];
+  // Busca nas anotações: texto, trecho citado e a transcrição das notas de voz
+  const busca = (searchParams.busca ?? '').trim().slice(0, 100);
+  const terms = fold(busca).split(/\s+/).filter(Boolean);
+  const notes = terms.length
+    ? allNotes.filter((n) => { const hay = fold(`${n.note ?? ''} ${n.quote ?? ''} ${n.transcript ?? ''}`); return terms.every((t) => hay.includes(t)); })
+    : allNotes;
+  const marks = terms.length ? [] : (marksRes.data ?? []) as MarkRow[];
 
   // Caderno: anotações e marcadores agrupados por livro
   const bookIds = Array.from(new Set([...notes.map((n) => n.material_id), ...marks.map((m) => m.material_id)]));
@@ -46,7 +56,7 @@ export default async function Profile() {
     notes: notes.filter((n) => n.material_id === b.id),
     marks: marks.filter((m) => m.material_id === b.id),
     last: notes.filter((n) => n.material_id === b.id).map((n) => n.created_at).sort().pop() ?? '',
-  })).sort((a, b) => b.last.localeCompare(a.last));
+  })).filter((b) => !terms.length || b.notes.length).sort((a, b) => b.last.localeCompare(a.last));
 
   const name = profile?.display_name || user.email?.split('@')[0] || 'Membro';
   const since = meRes.data?.created_at ? new Date(meRes.data.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : null;
@@ -71,7 +81,7 @@ export default async function Profile() {
       <div className="panel stat-grid">
         <div className="stat-tile"><span>Páginas lidas</span><b>{pages.toLocaleString('pt-BR')}</b><small>cada página conta uma vez</small></div>
         <div className="stat-tile"><span>Minutos escutados</span><b>{minutes.toLocaleString('pt-BR')}</b><small>audiobooks, áudios e vídeos</small></div>
-        <div className="stat-tile"><span>Anotações</span><b>{notes.length}</b><small>{marks.length} marcadores</small></div>
+        <div className="stat-tile"><span>Anotações</span><b>{allNotes.length}</b><small>{marks.length} marcadores</small></div>
         <div className="stat-tile"><span>Em andamento</span><b>{reading.length + listening.length}</b><small>leituras e escutas</small></div>
       </div>
 
@@ -117,10 +127,19 @@ export default async function Profile() {
 
       <section className="panel" id="caderno" aria-labelledby="h-caderno">
         <div className="panel-head"><h2 id="h-caderno">Anotações por livro</h2><span className="muted" style={{ fontSize: 12.5 }}>separado por livro</span></div>
+        {allNotes.length ? (
+          <form action="/perfil#caderno" className="note-search" role="search">
+            <label htmlFor="busca-notas" className="sr-only">Buscar nas anotações</label>
+            <input id="busca-notas" name="busca" type="search" defaultValue={busca} maxLength={100} placeholder="Buscar nas anotações e no que foi dito nas notas de voz…" />
+            <button className="btn" type="submit">Buscar</button>
+            {busca ? <Link className="btn btn-ghost" href="/perfil#caderno">Limpar</Link> : null}
+          </form>
+        ) : null}
+        {busca ? <p className="muted" style={{ margin: '0 0 10px', fontSize: 13.5 }}>{notes.length ? `${notes.length} ${notes.length === 1 ? 'anotação encontrada' : 'anotações encontradas'} para “${busca}”.` : `Nenhuma anotação com “${busca}”.`}</p> : null}
         {notebook.length ? (
           <div className="stack" style={{ ['--gap' as string]: '14px' }}>
             {notebook.map((b) => (
-              <details key={b.id} className="notebook" open={notebook.length <= 3}>
+              <details key={b.id} className="notebook" open={notebook.length <= 3 || !!busca}>
                 <summary>
                   <span className="notebook-cover">{b.coverUrl ? <img src={b.coverUrl} alt="" /> : null}</span>
                   <span className="lesson-t"><b>{b.title}</b><small>{b.notes.length} {b.notes.length === 1 ? 'anotação' : 'anotações'} · {b.marks.length} {b.marks.length === 1 ? 'marcador' : 'marcadores'}</small></span>
@@ -141,6 +160,7 @@ export default async function Profile() {
                       {n.quote ? <blockquote>“{n.quote}”</blockquote> : null}
                       {n.note ? <p>{n.note}</p> : null}
                       {n.audio_path ? <VoicePlayer path={n.audio_path} /> : null}
+                      {n.audio_path ? <Transcript text={n.transcript} status={n.transcript_status} /> : null}
                     </article>
                   ))}
                 </div>

@@ -48,7 +48,7 @@ export default async function MaterialPage({ params, searchParams }: { params: {
 
   const canReview = !!profile && (profile.approved || isStaff(profile));
   const [{ data: files }, { data: fav }, { data: progress }, { data: lists }, { data: reviewRows }, { data: readRows }] = await Promise.all([
-    supabase.from('files').select('id, role, title, position, duration_seconds, processing_status, path, external_url')
+    supabase.from('files').select('id, role, title, position, duration_seconds, processing_status, path, external_url, transcript')
       .eq('material_id', m.id).in('role', ['main', 'track', 'supplementary']).order('position'),
     user ? supabase.from('favorites').select('material_id').eq('material_id', m.id).maybeSingle() : Promise.resolve({ data: null }),
     user ? supabase.from('reading_progress').select('location, percent').eq('material_id', m.id).maybeSingle() : Promise.resolve({ data: null }),
@@ -63,7 +63,7 @@ export default async function MaterialPage({ params, searchParams }: { params: {
   const times = (n: number) => `${n.toLocaleString('pt-BR')} ${n === 1 ? 'vez' : 'vezes'}`;
   const reviews = (reviewRows ?? []) as Review[];
   const rated = reviewSummary(reviews);
-  const fileRows = (files ?? []) as FileRow[];
+  const fileRows = (files ?? []) as unknown as (FileRow & { transcript?: string | null })[];
   const tracks = fileRows.filter((f) => f.role === 'track');
   const main = fileRows.find((f) => f.role === 'main');
   const supplementary = fileRows.filter((f) => f.role === 'supplementary');
@@ -80,9 +80,11 @@ export default async function MaterialPage({ params, searchParams }: { params: {
   const locked = isCourse && !courseAccess;
   // Ponto/áudio que só existe no Spotify: toca pelo player oficial do Spotify
   const spotify = main?.external_url ? spotifyRef(main.external_url) : null;
+  const autoLyrics = !!m.description && tracks.some((t) => t.transcript === m.description);
   const hasContent = isCourse ? !locked && !!course?.lessons.length : LISTEN_TYPES.includes(m.type) ? tracks.some((t) => t.path) : !!main?.path || !!main?.external_url;
 
   const categories = m.material_categories.map((c) => c.categories).filter(Boolean) as { id: string; name: string; slug: string }[];
+  const isPonto = categories.some((c) => c.slug.startsWith('pontos-'));
   const authors = m.material_authors.sort((a, b) => a.position - b.position).filter((a) => a.authors);
   const [withCover] = await withCoverUrls([{ cover_path: m.cover_path }], { full: true });
 
@@ -185,8 +187,9 @@ export default async function MaterialPage({ params, searchParams }: { params: {
         <div className="stack" style={{ ['--gap' as string]: '20px', minWidth: 0 }}>
           {m.description || categories.length ? (
             <section className="panel stack">
-              <h2 style={{ fontSize: 18 }}>Sobre</h2>
+              <h2 style={{ fontSize: 18 }}>{isPonto && m.description ? 'Letra do ponto' : 'Sobre'}</h2>
               {m.description ? <p style={{ margin: 0, fontSize: 15, lineHeight: 1.75, whiteSpace: 'pre-line' }}>{m.description}</p> : null}
+              {autoLyrics ? <small className="muted">Letra transcrita automaticamente do áudio; pode ter pequenos erros.</small> : null}
               {categories.length ? <div className="row">{categories.map((c) => <Link key={c.id} href={`/acervo?categoria=${c.slug}`} className="chip">{c.name}</Link>)}</div> : null}
             </section>
           ) : null}

@@ -117,7 +117,7 @@ export function PontoForm({ groups }: { groups: Group[] }) {
         </small>
       </fieldset>
 
-      <label className="field">Letra do ponto (opcional)<textarea name="lyrics" rows={4} maxLength={8000} placeholder={'Ogum, beira-mar,\nOgum beira-mar…'} /></label>
+      <label className="field">Letra do ponto (opcional)<textarea name="lyrics" rows={4} maxLength={8000} placeholder={'Deixe em branco para o site transcrever o áudio sozinho\n(em versos e estrofes) em alguns minutos.'} /></label>
       <label className="field">Intérprete / autoria (opcional)<input name="rights_holder" maxLength={300} placeholder="Ex.: Curimba do terreiro, domínio público" /></label>
 
       {source !== 'spotify' ? (

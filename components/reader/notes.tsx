@@ -3,10 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './reader.module.css';
-import { VoicePlayer, VoiceRecorder } from './VoiceNote';
+import { Transcript, VoicePlayer, VoiceRecorder } from './VoiceNote';
 
 export type Bookmark = { id: string; location: string; label: string | null; created_at: string };
-export type Note = { id: string; location: string; quote: string | null; note: string | null; audio_path: string | null; created_at: string };
+export type Note = {
+  id: string; location: string; quote: string | null; note: string | null; audio_path: string | null; created_at: string;
+  transcript?: string | null; transcript_status?: string | null;
+};
+const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 // Marcadores e anotações do leitor: privados de cada pessoa (RLS por user_id)
 export function useReaderNotes(materialId: string, enabled: boolean) {
@@ -19,7 +23,7 @@ export function useReaderNotes(materialId: string, enabled: boolean) {
     const supabase = createClient();
     const [b, n] = await Promise.all([
       supabase.from('bookmarks').select('id, location, label, created_at').eq('material_id', materialId).order('created_at'),
-      supabase.from('annotations').select('id, location, quote, note, audio_path, created_at').eq('material_id', materialId).order('created_at'),
+      supabase.from('annotations').select('id, location, quote, note, audio_path, created_at, transcript, transcript_status').eq('material_id', materialId).order('created_at'),
     ]);
     if (b.data) setBookmarks(b.data as Bookmark[]);
     if (n.data) setNotes(n.data as Note[]);
@@ -62,7 +66,7 @@ export function useReaderNotes(materialId: string, enabled: boolean) {
     }
     const { data, error: e } = await supabase.from('annotations')
       .insert({ user_id: uid, material_id: materialId, location, note: note.trim() || null, quote: quote.trim().slice(0, 2000) || null, audio_path: audioPath })
-      .select('id, location, quote, note, audio_path, created_at').single();
+      .select('id, location, quote, note, audio_path, created_at, transcript, transcript_status').single();
     if (e || !data) {
       if (audioPath) await supabase.storage.from('notes').remove([audioPath]);
       setError('Não foi possível salvar a anotação (sem conexão?).');
@@ -92,7 +96,13 @@ export function NotesPanel({ api, location, describe, onGo, initialQuote, canSav
   const [quote, setQuote] = useState(initialQuote);
   const [saving, setSaving] = useState(false);
   const [voice, setVoice] = useState<Blob | null>(null);
+  const [find, setFind] = useState('');
   useEffect(() => setQuote(initialQuote), [initialQuote]);
+  // Busca nas anotações deste livro, inclusive no que foi dito nas notas de voz
+  const terms = fold(find).split(/\s+/).filter(Boolean);
+  const shown = terms.length
+    ? api.notes.filter((n) => { const hay = fold(`${n.note ?? ''} ${n.quote ?? ''} ${n.transcript ?? ''}`); return terms.every((t) => hay.includes(t)); })
+    : api.notes;
 
   if (!canSave) return <p className={styles.note}>Entre na sua conta para criar marcadores e anotações. Eles ficam guardados só para você.</p>;
   return (
@@ -122,8 +132,13 @@ export function NotesPanel({ api, location, describe, onGo, initialQuote, canSav
       ) : <p className={styles.note}>Use o botão de marcador na barra para marcar onde quiser voltar.</p>}
 
       <h3>Anotações</h3>
+      {api.notes.length > 2 ? (
+        <input type="search" className={styles.noteFind} value={find} onChange={(e) => setFind(e.target.value)}
+          placeholder="Buscar nas anotações e notas de voz…" aria-label="Buscar nas anotações" />
+      ) : null}
+      {terms.length && !shown.length ? <p className={styles.note}>Nenhuma anotação com “{find}”.</p> : null}
       {api.notes.length ? (
-        <ol>{api.notes.map((n) => (
+        <ol>{shown.map((n) => (
           <li key={n.id} className={styles.noteItem}>
             <button type="button" onClick={() => onGo(n.location)}>
               <small>{describe(n.location)}</small>
@@ -131,6 +146,7 @@ export function NotesPanel({ api, location, describe, onGo, initialQuote, canSav
               {n.note ? <span>{n.note}</span> : null}
             </button>
             {n.audio_path ? <VoicePlayer path={n.audio_path} /> : null}
+            {n.audio_path ? <Transcript text={n.transcript ?? null} status={n.transcript_status ?? 'pendente'} /> : null}
             <button type="button" className={styles.del} onClick={() => { if (confirm('Apagar esta anotação?')) void api.removeNote(n.id); }} aria-label="Apagar anotação">Apagar</button>
           </li>
         ))}</ol>

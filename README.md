@@ -40,6 +40,7 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Caderno de estudos: folhas livres (mapa mental) com notas coloridas, prints colados e ligações entre ideias; abre por cima do leitor e do audiobook, fica no perfil e baixa em PDF | ✅ |
 | Sugestões de materiais: membros sugerem (título, autor, tipo, link, motivo) e acompanham a resposta; a equipe recebe no painel com aviso de novas e responde | ✅ |
 | Pontos cantados no painel (área própria): envio de arquivo, link do YouTube (o servidor baixa o MP3 e guarda no acervo, com confirmação de autorização) ou link do Spotify (player oficial) | ✅ |
+| Transcrição automática (Whisper no servidor): a letra dos pontos sai em versos e estrofes (revisada pela IA quando a chave está ligada) e as notas de voz ganham texto, pesquisável no perfil e no leitor | ✅ |
 | Extração de texto dos PDFs para a busca geral | ⏳ próxima etapa |
 
 ## Como colocar no ar

@@ -91,3 +91,11 @@ export function VoicePlayer({ path }: { path: string }) {
     }}><Icon name="play" size={14} /> {failed ? 'Áudio indisponível' : 'Ouvir nota de voz'}</button>
   );
 }
+
+// O que foi dito na nota de voz (transcrição automática feita no servidor)
+export function Transcript({ text, status }: { text: string | null; status: string | null }) {
+  if (status === 'pronto' && text) return <p className="voice-transcript"><span aria-hidden="true">📝</span> {text}</p>;
+  if (status === 'pendente' || status === 'processando') return <p className="voice-transcript pending">📝 transcrevendo o áudio…</p>;
+  if (status === 'erro') return <p className="voice-transcript pending">📝 não foi possível transcrever este áudio</p>;
+  return null;
+}

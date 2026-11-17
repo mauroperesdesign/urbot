@@ -50,6 +50,16 @@ export async function publishPonto(id: string): Promise<Result> {
   return error ? { error: 'Não foi possível publicar (confira a autorização).' } : { id };
 }
 
+// Coloca as faixas do ponto de volta na fila de transcrição (ex.: depois de trocar o áudio)
+export async function retranscribePonto(form: FormData) {
+  const { supabase } = await requireStaff();
+  const id = String(form.get('id'));
+  await supabase.from('files').update({ transcript_status: 'pendente', transcript: null, transcript_error: null })
+    .eq('material_id', id).eq('role', 'track').not('path', 'is', null);
+  if (form.get('lyrics') === 'replace') await supabase.from('materials').update({ description: null }).eq('id', id);
+  revalidatePath('/admin/pontos');
+}
+
 export async function deletePonto(form: FormData) {
   const { supabase } = await requireStaff();
   const id = String(form.get('id'));
