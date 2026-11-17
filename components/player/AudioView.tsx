@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { RATES, usePlayer, type Queue } from './PlayerProvider';
 import { formatDuration } from '@/lib/labels';
 import { Icon, PauseIcon, PlayIcon } from '../Icon';
+import { useCaderno } from '../caderno/CadernoProvider';
 
 const SLEEP = [
   { label: 'Desligado', value: null },
@@ -18,6 +19,7 @@ export function AudioView({ queue, startIndex, startAt, coverUrl, canSave }: {
   queue: Queue; startIndex: number; startAt: number; coverUrl: string | null; canSave: boolean;
 }) {
   const p = usePlayer();
+  const caderno = useCaderno();
   const [sleepIdx, setSleepIdx] = useState(0);
   const mine = p.queue?.materialId === queue.materialId;
 
@@ -33,7 +35,14 @@ export function AudioView({ queue, startIndex, startAt, coverUrl, canSave }: {
 
   return (
     <div className="container" style={{ maxWidth: 1100, marginTop: 24 }}>
-      <Link href={`/material/${queue.materialSlug}`} className="row muted"><Icon name="back" size={18} /> Voltar ao material</Link>
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <Link href={`/material/${queue.materialSlug}`} className="row muted"><Icon name="back" size={18} /> Voltar ao material</Link>
+        {canSave ? (
+          <button type="button" className="btn" onClick={() => caderno.open({ about: `${queue.materialTitle} · faixa ${(mine ? p.index : startIndex) + 1} · ${formatDuration(mine ? p.time : startAt)}` })}>
+            <Icon name="notebook" size={18} /> Caderno de estudos
+          </button>
+        ) : null}
+      </div>
       <div style={{ display: 'grid', gap: 32, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', marginTop: 16, alignItems: 'start' }}>
         <section className="stack" style={{ background: '#081A4F', color: '#FFFFFF', borderRadius: 24, padding: 24, ['--gap' as string]: '18px' }} aria-label="Player">
           <div style={{ aspectRatio: '1', borderRadius: 24, overflow: 'hidden', background: '#9A4A2B', position: 'relative', maxWidth: 320, width: '100%', alignSelf: 'center' }}>

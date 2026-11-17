@@ -18,7 +18,7 @@ const where = (loc: string) => (loc.startsWith('epubcfi(') ? 'trecho do livro' :
 
 export default async function Profile() {
   const { supabase, user, profile } = await requireUser('/perfil');
-  const [pagesRes, listenRes, notesRes, marksRes, reading, listening, meRes] = await Promise.all([
+  const [pagesRes, listenRes, notesRes, marksRes, reading, listening, meRes, cadRes] = await Promise.all([
     supabase.from('reading_pages').select('page', { count: 'exact', head: true }),
     supabase.from('listening_time').select('seconds'),
     supabase.from('annotations').select('id, location, quote, note, audio_path, created_at, material_id').order('created_at').limit(1000),
@@ -26,7 +26,10 @@ export default async function Profile() {
     readingProgress(30),
     listeningProgress(30),
     supabase.from('profiles').select('created_at').eq('id', user.id).maybeSingle(),
+    supabase.from('notebook_pages').select('id, title, content').order('created_at'),
   ]);
+  const folhas = ((cadRes.data ?? []) as { id: string; title: string; content: { items?: unknown[] } }[])
+    .map((f) => ({ id: f.id, title: f.title, n: f.content?.items?.length ?? 0 }));
   const pages = pagesRes.count ?? 0;
   const minutes = Math.floor((listenRes.data ?? []).reduce((a, r) => a + (r.seconds ?? 0), 0) / 60);
   const notes = (notesRes.data ?? []) as NoteRow[];
@@ -93,8 +96,24 @@ export default async function Profile() {
         ) : <div className="empty"><span className="muted">Os audiobooks que você ouvir aparecem aqui, com a faixa e o minuto onde parou.</span></div>}
       </section>
 
+      <section className="panel cad-profile" id="caderno-estudos" aria-labelledby="h-cad-estudos">
+        <div className="panel-head">
+          <h2 id="h-cad-estudos">📓 Caderno de estudos</h2>
+          <Link className="btn btn-primary" href="/caderno">Abrir caderno</Link>
+        </div>
+        <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>
+          Seu caderno livre: escreva, cole prints e ligue ideias como num mapa mental. Ele também abre por cima do livro ou do audiobook
+          (botão <b>📓</b> no leitor e <b>Caderno de estudos</b> no player) e pode ser baixado em PDF.
+        </p>
+        {folhas.length ? (
+          <div className="row" style={{ marginTop: 10 }}>
+            {folhas.map((f) => <Link key={f.id} className="chip" href="/caderno">{f.title} · {f.n} {f.n === 1 ? 'item' : 'itens'}</Link>)}
+          </div>
+        ) : null}
+      </section>
+
       <section className="panel" id="caderno" aria-labelledby="h-caderno">
-        <div className="panel-head"><h2 id="h-caderno">Caderno de anotações</h2><span className="muted" style={{ fontSize: 12.5 }}>separado por livro</span></div>
+        <div className="panel-head"><h2 id="h-caderno">Anotações por livro</h2><span className="muted" style={{ fontSize: 12.5 }}>separado por livro</span></div>
         {notebook.length ? (
           <div className="stack" style={{ ['--gap' as string]: '14px' }}>
             {notebook.map((b) => (

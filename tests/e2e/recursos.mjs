@@ -422,6 +422,42 @@ try {
     await anon.context().close();
   });
 
+  await check('Caderno de estudos: notas, imagem colada, ligação, salva no perfil e baixa PDF; abre por cima do leitor com o trecho', async () => {
+    await sb.from('notebook_pages').delete().eq('user_id', member.id);
+    await page.goto(`${BASE}/caderno`);
+    await page.locator('.cad-tabs button[role=tab]').first().waitFor();
+    assert(await page.locator('.cad-tabs button[role=tab]').count() === 1, 'caderno novo deve ter 1 folha');
+    await page.click('button:has-text("+ Nota")'); await page.keyboard.type(`Ideia A ${run}`);
+    await page.click('button:has-text("+ Nota")'); await page.keyboard.type('Ideia B');
+    await page.locator('.cad-tools input[type=file]').setInputFiles(path.join(FIX, 'capa.jpg'));
+    await page.locator('.cad-image img').waitFor({ timeout: 20000 });
+    await page.click('button:has-text("Ligar ideias")');
+    await page.locator('.cad-item').nth(0).click({ position: { x: 20, y: 40 } });
+    await page.locator('.cad-item').nth(1).click({ position: { x: 20, y: 40 } });
+    await page.locator('.cad-title small:has-text("salvo")').waitFor({ timeout: 10000 });
+    await page.waitForTimeout(400);
+    const { data: rows } = await sb.from('notebook_pages').select('content').eq('user_id', member.id);
+    const c = rows?.[0]?.content;
+    assert(c?.items?.length === 3 && c?.links?.length === 1, `conteúdo salvo: ${JSON.stringify(c)?.slice(0, 200)}`);
+    const img = c.items.find((i) => i.kind === 'image');
+    assert(img.path.startsWith(`${member.id}/`), 'imagem fora da pasta da pessoa');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('.cad-top button:has-text("PDF")')]);
+    const bytes = fs.readFileSync(await dl.path());
+    assert(bytes.subarray(0, 4).toString() === '%PDF' && bytes.length > 2000, 'PDF inválido');
+    await page.goto(`${BASE}/ler/${pdf.slug}`);
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('[class*=textLayer] span')).some((s) => (s.textContent ?? '').trim().length > 3), null, { timeout: 20000 });
+    await page.evaluate(() => { const sp = Array.from(document.querySelectorAll('[class*=textLayer] span')).find((s) => (s.textContent ?? '').trim().length > 3); const r = document.createRange(); r.selectNodeContents(sp); getSelection().removeAllRanges(); getSelection().addRange(r); });
+    await page.click('button[aria-label="Abrir o caderno de estudos"]');
+    await page.locator('.cad-drawer .cad-about').waitFor();
+    await page.waitForFunction(() => [...document.querySelectorAll('.cad-drawer .cad-item textarea')].some((t) => t.value.startsWith('“')), null, { timeout: 15000 });
+    assert((await page.locator('.cad-drawer .cad-source').last().innerText()).includes('PDF de teste E2E'), 'nota sem a referência do livro');
+    await page.click('button[aria-label="Fechar o caderno"]');
+    await page.goto(`${BASE}/perfil`);
+    assert((await page.locator('#caderno-estudos').innerText()).includes('itens'), 'perfil sem o caderno');
+    await sb.storage.from('caderno').remove([img.path]);
+    await sb.from('notebook_pages').delete().eq('user_id', member.id);
+  });
+
   await check('Membro não acessa estatísticas (nem pela função do banco)', async () => {
     const r = await page.goto(`${BASE}/admin/estatisticas`);
     assert(!page.url().includes('/admin/estatisticas') || r.status() >= 400, `membro abriu: ${page.url()}`);

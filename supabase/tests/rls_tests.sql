@@ -424,4 +424,38 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== caderno de estudos'
+insert into public.notebook_pages (user_id, title) values ('00000000-0000-0000-0000-00000000000c', 'folha de outra pessoa');
+insert into storage.objects (bucket_id, name) values ('caderno', '00000000-0000-0000-0000-00000000000c/p/1.jpg');
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ declare pid uuid; begin
+  assert (select count(*) from public.notebook_pages) = 0, 'não vê o caderno de outra pessoa';
+  insert into public.notebook_pages (user_id, title) values (auth.uid(), 'Minha folha') returning id into pid;
+  update public.notebook_pages set content = '{"items":[{"id":"a","kind":"text","x":1,"y":2,"w":200,"text":"oi","color":"amarelo"}],"links":[]}', updated_at = now() where id = pid;
+  assert (select content->'items'->0->>'text' from public.notebook_pages where id = pid) = 'oi', 'salva o conteúdo da folha';
+  assert public.t_expect_error($q$insert into public.notebook_pages (user_id, title) values ('00000000-0000-0000-0000-00000000000c', 'x')$q$), 'não cria folha para outra pessoa';
+  assert public.t_expect_error($q$update public.notebook_pages set user_id = '00000000-0000-0000-0000-00000000000c'$q$), 'não troca o dono da folha';
+  update public.notebook_pages set title = 'invadida' where user_id = '00000000-0000-0000-0000-00000000000c';
+  delete from public.notebook_pages where user_id = '00000000-0000-0000-0000-00000000000c';
+  assert (select count(*) from public.notebook_pages) = 1, 'só vê a própria folha';
+  assert (select count(*) from storage.objects where bucket_id = 'caderno') = 0, 'não vê imagens do caderno de outra pessoa';
+  insert into storage.objects (bucket_id, name) values ('caderno', auth.uid()::text || '/p/1.jpg');
+  assert public.t_expect_error($q$insert into storage.objects (bucket_id, name) values ('caderno', '00000000-0000-0000-0000-00000000000c/p/2.jpg')$q$), 'não grava imagem na pasta de outra pessoa';
+  assert public.t_expect_error($q$update public.notebook_pages set content = jsonb_build_object('items', (select jsonb_agg(jsonb_build_object('t', repeat(md5(g::text), 40))) from generate_series(1, 400) g), 'links', '[]'::jsonb)$q$), 'folha grande demais é recusada';
+end $$;
+rollback;
+do $$ begin
+  assert (select title from public.notebook_pages where user_id = '00000000-0000-0000-0000-00000000000c') = 'folha de outra pessoa', 'folha de outra pessoa intacta';
+end $$;
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert (select count(*) from public.notebook_pages) = 0, 'visitante não vê cadernos';
+  assert public.t_expect_error($q$insert into public.notebook_pages (title) values ('x')$q$), 'visitante não cria folha';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

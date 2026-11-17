@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import { VelinhaGate } from '@/components/assistente/VelinhaGate';
+import { CadernoProvider } from '@/components/caderno/CadernoProvider';
 import { Poppins, Literata } from 'next/font/google';
 import './globals.css';
 import { Sidebar, Topbar, currentTheme } from '@/components/Header';
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" data-theme={currentTheme()} className={`${sans.variable} ${read.variable}`}>
       <body>
         <PlayerProvider>
+          <CadernoProvider>
           <a href="#conteudo" className="sr-only">Pular para o conteúdo</a>
           <div className="app">
             <Sidebar />
@@ -52,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <MiniPlayer />
           <VelinhaGate />
           <ServiceWorker />
+          </CadernoProvider>
         </PlayerProvider>
       </body>
     </html>

@@ -52,7 +52,7 @@ export function Velinha() {
   }, []);
 
   // No leitor e no painel a bolinha atrapalharia
-  if (/^\/(ler|admin|entrar|cadastro)/.test(path ?? '')) return null;
+  if (/^\/(ler|admin|entrar|cadastro|caderno)/.test(path ?? '')) return null;
 
   async function send(content: string) {
     const q = content.trim().slice(0, 800);

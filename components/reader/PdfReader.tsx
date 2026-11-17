@@ -9,6 +9,7 @@ import { markRead } from '@/lib/reads';
 import { Icon } from '../Icon';
 import { NotesPanel, useReaderNotes } from './notes';
 import { OfflineButton } from './OfflineButton';
+import { useCaderno } from '../caderno/CadernoProvider';
 import styles from './reader.module.css';
 
 type Fit = 'width' | 'page' | 'custom';
@@ -43,6 +44,7 @@ export function PdfReader(props: {
   const [quote, setQuote] = useState('');
   const [tools, setTools] = useState(false); // opções extras da barra (no celular ficam recolhidas)
   const notes = useReaderNotes(props.materialId, props.canSave);
+  const caderno = useCaderno();
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<Hit[] | null>(null);
@@ -241,6 +243,11 @@ export function PdfReader(props: {
           onClick={() => void notes.toggleBookmark(String(page), `Página ${page}`)}><Icon name="bookmark" /></button>
         <button type="button" className={styles.ib} aria-pressed={panel === 'notes'} aria-label="Marcadores e anotações"
           onMouseDown={(e) => e.preventDefault()} onClick={openNotes}><Icon name="note" /></button>
+        {props.canSave ? (
+          <button type="button" className={styles.ib} aria-label="Abrir o caderno de estudos" title="Caderno de estudos"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => caderno.open({ about: `${props.title}, p. ${page}`, quote: window.getSelection()?.toString().trim() || undefined })}><Icon name="notebook" /></button>
+        ) : null}
         <button type="button" className={`${styles.ib} ${styles.moreBtn}`} aria-expanded={tools} aria-label="Mais opções de leitura" onClick={() => setTools(!tools)}>⋯</button>
         <div className={styles.more} data-open={tools}>
           <div className={styles.group} role="group" aria-label="Zoom">

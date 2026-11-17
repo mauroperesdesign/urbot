@@ -9,6 +9,7 @@ import { getOfflineFile } from '@/lib/offline';
 import { Icon } from '../Icon';
 import { NotesPanel, useReaderNotes } from './notes';
 import { OfflineButton } from './OfflineButton';
+import { useCaderno } from '../caderno/CadernoProvider';
 import styles from './reader.module.css';
 
 type Theme = 'claro' | 'sepia' | 'escuro';
@@ -50,6 +51,7 @@ export function EpubReader(props: {
   const [quote, setQuote] = useState('');
   const [tools, setTools] = useState(false);
   const notes = useReaderNotes(props.materialId, props.canSave);
+  const caderno = useCaderno();
 
   useEffect(() => {
     try {
@@ -218,6 +220,10 @@ export function EpubReader(props: {
           onClick={() => void notes.toggleBookmark(cfi, pct != null ? `${pct}% do livro` : 'Marcador')}><Icon name="bookmark" /></button>
         <button type="button" className={styles.ib} aria-pressed={panel === 'notes'} aria-label="Marcadores e anotações"
           onClick={() => { setQuote(selection.current); setPanel(panel === 'notes' ? 'none' : 'notes'); }}><Icon name="note" /></button>
+        {props.canSave ? (
+          <button type="button" className={styles.ib} aria-label="Abrir o caderno de estudos" title="Caderno de estudos"
+            onClick={() => caderno.open({ about: `${props.title}${pct != null ? `, ${pct}%` : ''}`, quote: selection.current || undefined })}><Icon name="notebook" /></button>
+        ) : null}
         <button type="button" className={`${styles.ib} ${styles.moreBtn}`} aria-expanded={tools} aria-label="Mais opções de leitura" onClick={() => setTools(!tools)}>⋯</button>
         <div className={styles.more} data-open={tools}>
           <div className={styles.group} role="group" aria-label="Tamanho da letra">

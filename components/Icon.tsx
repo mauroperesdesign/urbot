@@ -29,6 +29,7 @@ const PATHS: Record<string, string> = {
   sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
   offline: 'M12 4v10M8 10l4 4 4-4M5 19h14',
   note: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  notebook: 'M7 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7zM10 3v18M4 7h4M4 12h4M4 17h4M13 8h3',
   check: 'M5 12l5 5 9-10',
   play: 'M8 5v14l11-7z',
   video: 'M4 6h11v12H4zM15 10l5-3v10l-5-3',
