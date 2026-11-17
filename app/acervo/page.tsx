@@ -103,6 +103,7 @@ export default async function Acervo({ searchParams }: { searchParams: Search })
         <div className="empty" style={{ marginTop: 24 }}>
           <b>Nada encontrado</b>
           <span className="muted">Tente outras palavras, remova filtros ou explore as categorias.</span>
+          <Link className="btn" href="/sugerir">💡 Sugerir este material para a biblioteca</Link>
         </div>
       ) : null}
 

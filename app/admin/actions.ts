@@ -342,3 +342,22 @@ export async function deletePhrase(form: FormData) {
   await supabase.from('streak_phrases').delete().eq('id', String(form.get('id')));
   revalidatePath('/admin/calendario');
 }
+
+// Sugestões de materiais enviadas pelos membros
+export async function reviewSuggestion(form: FormData) {
+  const { supabase } = await requireStaff();
+  const status = String(form.get('status'));
+  if (!['nova', 'analisando', 'adicionada', 'recusada'].includes(status)) return;
+  await supabase.from('material_suggestions').update({
+    status, admin_note: str(form, 'admin_note', 1000) || null, updated_at: new Date().toISOString(),
+  }).eq('id', String(form.get('id')));
+  revalidatePath('/admin/sugestoes');
+  revalidatePath('/admin');
+}
+
+export async function deleteSuggestion(form: FormData) {
+  const { supabase } = await requireStaff();
+  await supabase.from('material_suggestions').delete().eq('id', String(form.get('id')));
+  revalidatePath('/admin/sugestoes');
+  revalidatePath('/admin');
+}

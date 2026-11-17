@@ -38,6 +38,7 @@ Acervo digital de estudo do Grupo de Estudos da Umbanda En Tenda: livros, aposti
 | Ofensiva de estudos (dias seguidos, como no Duolingo) no início e no perfil, com lembrete diário por notificação (horário escolhido pela pessoa, 30 frases editáveis pela equipe) | ✅ |
 | Velinha: assistente flutuante (canto inferior direito) que recomenda livros, audiobooks e cursos do acervo; com IA (Claude) quando há chave da API (`deploy/assistente.sh`), ou busca por palavras sem ela | ✅ |
 | Caderno de estudos: folhas livres (mapa mental) com notas coloridas, prints colados e ligações entre ideias; abre por cima do leitor e do audiobook, fica no perfil e baixa em PDF | ✅ |
+| Sugestões de materiais: membros sugerem (título, autor, tipo, link, motivo) e acompanham a resposta; a equipe recebe no painel com aviso de novas e responde | ✅ |
 | Extração de texto dos PDFs para a busca geral | ⏳ próxima etapa |
 
 ## Como colocar no ar

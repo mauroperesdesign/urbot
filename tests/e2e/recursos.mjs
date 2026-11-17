@@ -475,6 +475,31 @@ try {
   });
 
   const admin = await login(await browser.newContext({ viewport: { width: 1366, height: 900 } }), 'admin@teste.local');
+  await check('Sugestões: membro sugere material, admin recebe no painel e responde', async () => {
+    const m = await login(await browser.newContext({ viewport: { width: 1366, height: 900 } }), 'membro@teste.local');
+    await m.goto(`${BASE}/sugerir`);
+    await m.fill('input[name=title]', `Sugestão E2E ${run}`);
+    await m.selectOption('select[name=kind]', 'audiobook');
+    await m.fill('input[name=link]', 'exemplo.org/livro');
+    await m.click('button:has-text("Enviar sugestão")');
+    await m.waitForURL(/enviada=1/);
+    const { data: sug } = await sb.from('material_suggestions').select('id, link, status').like('title', `%${run}`).single();
+    assert(sug?.link === 'https://exemplo.org/livro' && sug.status === 'nova', `sugestão salva errada: ${JSON.stringify(sug)}`);
+    await admin.goto(`${BASE}/admin`);
+    assert((await admin.locator('a[href="/admin/sugestoes"]').first().innerText()).includes('nova'), 'painel sem aviso de sugestão nova');
+    await admin.goto(`${BASE}/admin/sugestoes`);
+    const card = admin.locator(`.sug-item:has-text("Sugestão E2E ${run}")`);
+    await card.locator('select[name=status]').selectOption('recusada');
+    await card.locator('input[name=admin_note]').fill('Sem autorização dos direitos.');
+    await card.locator('button:has-text("Salvar")').click();
+    await admin.waitForTimeout(1200);
+    await m.goto(`${BASE}/sugerir`);
+    const mine = await m.locator(`.sug-item:has-text("Sugestão E2E ${run}")`).innerText();
+    assert(mine.includes('Não será adicionada') && mine.includes('Sem autorização'), `membro não vê a resposta: ${mine}`);
+    await m.context().close();
+    await sb.from('material_suggestions').delete().eq('id', sug.id);
+  });
+
   await check('Admin: estatísticas mostram acessos', async () => {
     await admin.goto(`${BASE}/admin/estatisticas`);
     const tiles = await admin.locator('.stat-tile').allInnerTexts();

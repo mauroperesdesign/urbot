@@ -458,4 +458,57 @@ do $$ begin
 end $$;
 rollback;
 
+\echo '== sugestões de materiais'
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ declare sid uuid; begin
+  insert into public.material_suggestions (user_id, title, kind, link) values (auth.uid(), 'Livro sugerido', 'livro', 'https://exemplo.org') returning id into sid;
+  assert (select count(*) from public.material_suggestions) = 1, 'membro vê a própria sugestão';
+  assert public.t_expect_error($q$insert into public.material_suggestions (user_id, title) values ('00000000-0000-0000-0000-00000000000c', 'x y')$q$), 'não sugere em nome de outra pessoa';
+  assert public.t_expect_error($q$insert into public.material_suggestions (user_id, title, status) values (auth.uid(), 'já aprovada', 'adicionada')$q$), 'membro não marca a própria como adicionada';
+  assert public.t_expect_error($q$insert into public.material_suggestions (user_id, title, link) values (auth.uid(), 'link estranho', 'javascript:alert(1)')$q$), 'só aceita link http(s)';
+  for i in 2..10 loop insert into public.material_suggestions (user_id, title) values (auth.uid(), 'sugestão ' || i); end loop;
+  assert public.t_expect_error($q$insert into public.material_suggestions (user_id, title) values (auth.uid(), 'a décima primeira')$q$), 'limite de 10 por dia';
+  delete from public.material_suggestions where id = sid;
+  assert (select count(*) from public.material_suggestions) = 9, 'retira a própria sugestão nova';
+end $$;
+rollback;
+insert into public.material_suggestions (user_id, title) values ('00000000-0000-0000-0000-00000000000b', 'Sugestão do membro');
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+do $$ begin
+  assert (select count(*) from public.material_suggestions) = 0, 'não vê sugestões de outras pessoas';
+  assert public.t_expect_error($q$insert into public.material_suggestions (user_id, title) values (auth.uid(), 'de quem não foi aprovado')$q$), 'cadastro não aprovado não sugere';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000a';
+do $$ begin
+  assert (select count(*) from public.material_suggestions) = 1, 'equipe vê as sugestões';
+  update public.material_suggestions set status = 'adicionada', admin_note = 'Já está no acervo!';
+  assert (select status from public.material_suggestions) = 'adicionada', 'equipe muda a situação';
+end $$;
+rollback;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  update public.material_suggestions set status = 'analisando' where true;
+exception when others then null; end $$;
+do $$ begin
+  assert (select status from public.material_suggestions) = 'nova', 'membro não altera a situação';
+end $$;
+rollback;
+begin;
+set local role anon;
+set local request.jwt.claim.sub = '';
+do $$ begin
+  assert (select count(*) from public.material_suggestions) = 0, 'visitante não vê sugestões';
+  assert public.t_expect_error($q$insert into public.material_suggestions (title) values ('anônima')$q$), 'visitante não sugere';
+end $$;
+rollback;
+
 \echo 'Todos os testes de RLS passaram.'

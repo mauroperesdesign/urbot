@@ -20,6 +20,7 @@ const PERSONAL: NavItem[] = [
   { href: '/perfil', label: 'Meu perfil', icon: 'user', auth: true },
   { href: '/agenda', label: 'Agenda', icon: 'calendar', auth: true },
   { href: '/caderno', label: 'Caderno de estudos', icon: 'notebook', auth: true },
+  { href: '/sugerir', label: 'Sugerir material', icon: 'idea', auth: true },
 ];
 
 export type PontosNav = { orixas: { slug: string; name: string }[]; linhas: { slug: string; name: string }[] };

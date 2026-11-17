@@ -674,3 +674,15 @@ body:has(.mini-player) .velinha-panel { bottom: 240px; max-height: calc(100dvh -
 }
 @media print { .cad-drawer { display: none; } }
 .cad-top .btn, .cad-profile .panel-head .btn { white-space: nowrap; }
+
+/* Sugestões de materiais */
+.badge-ok { background: #DDF5E4; color: #14532D; }
+:root[data-theme='dark'] .badge-ok { background: #12301F; color: #B6EBCB; }
+.sug-hero { background: linear-gradient(135deg, color-mix(in srgb, #FFD54A 22%, var(--surface)), var(--surface)); }
+.sug-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.sug-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.sug-item { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.sug-item .badge { flex: none; white-space: nowrap; }
+.sug-note { margin: 0; padding: 8px 12px; border-radius: 10px; background: var(--surface); font-size: 13.5px; border-left: 3px solid var(--primary); }
+.sug-review { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.sug-review .field { flex: 0 1 200px; }

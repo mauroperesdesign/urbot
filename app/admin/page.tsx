@@ -17,7 +17,7 @@ export default async function AdminHome() {
   const { supabase } = await requireStaff();
   const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
-  const [total, published, drafts, pendingFiles, failedFiles, pendingUsers, events, sizes] = await Promise.all([
+  const [total, published, drafts, pendingFiles, failedFiles, pendingUsers, events, sizes, newSuggestions] = await Promise.all([
     count(supabase.from('materials').select('id', { count: 'exact', head: true })),
     count(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('status', 'published')),
     count(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('status', 'draft')),
@@ -26,6 +26,7 @@ export default async function AdminHome() {
     count(supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('approved', false).eq('role', 'member')),
     count(supabase.from('access_events').select('id', { count: 'exact', head: true }).gte('created_at', since)),
     supabase.from('files').select('size_bytes').not('path', 'is', null),
+    count(supabase.from('material_suggestions').select('id', { count: 'exact', head: true }).eq('status', 'nova')),
   ]);
   const usedBytes = (sizes.data ?? []).reduce((a, f) => a + (f.size_bytes ?? 0), 0);
   const { data: requests } = await supabase.from('course_requests').select('course_id, materials(id, title)').limit(200);
@@ -44,6 +45,7 @@ export default async function AdminHome() {
         <Stat label="Arquivos aguardando envio" value={pendingFiles} hint="Registros sem arquivo no armazenamento" tone="#FBF3E1" />
         <Stat label="Falhas de processamento" value={failedFiles} tone={failedFiles ? '#F6E3DC' : undefined} />
         <Stat label="Cadastros para aprovar" value={pendingUsers} />
+        <Stat label="Sugestões novas" value={newSuggestions} hint="Materiais sugeridos pelos membros" tone={newSuggestions ? '#FFF4B8' : undefined} />
         <Stat label="Acessos (30 dias)" value={events} hint="Aberturas reais de leitura e áudio" />
         <Stat label="Armazenamento usado" value={`${(usedBytes / 1024 ** 3).toFixed(2)} GB`} hint="Soma dos arquivos enviados" />
       </div>
@@ -51,6 +53,7 @@ export default async function AdminHome() {
         <Link className="btn btn-primary" href="/admin/materiais/novo">+ Novo material</Link>
         <Link className="btn" href="/admin/materiais?status=draft">Revisar rascunhos</Link>
         {pendingUsers ? <Link className="btn" href="/admin/usuarios">Aprovar cadastros</Link> : null}
+        {newSuggestions ? <Link className="btn" href="/admin/sugestoes">💡 Ver {newSuggestions} {newSuggestions === 1 ? 'sugestão nova' : 'sugestões novas'}</Link> : null}
       </div>
       {byCourse.size ? (
         <section className="card stack" style={{ padding: 16, ['--gap' as string]: '8px' }}>
