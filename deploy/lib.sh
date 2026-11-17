@@ -81,3 +81,16 @@ setup_push() {
 CRON
   chmod 644 /etc/cron.d/biblioteca-ofensiva
 }
+
+# Baixador de áudio do YouTube (pontos cantados): ffmpeg + yt-dlp. Atualiza o yt-dlp a cada atualização do site,
+# porque o YouTube muda com frequência.
+setup_audio_tools() {
+  command -v ffmpeg >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq ffmpeg >/dev/null; } || warn "não foi possível instalar o ffmpeg"
+  command -v python3 >/dev/null 2>&1 || apt-get install -y -qq python3 >/dev/null || true
+  if [ -x /usr/local/bin/yt-dlp ]; then
+    /usr/local/bin/yt-dlp -U >/dev/null 2>&1 || warn "não foi possível atualizar o yt-dlp (o atual continua funcionando)"
+  else
+    curl -fsSL -o /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+      && chmod 755 /usr/local/bin/yt-dlp || warn "não foi possível instalar o yt-dlp (importar do YouTube não vai funcionar)"
+  fi
+}

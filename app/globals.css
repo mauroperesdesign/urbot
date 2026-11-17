@@ -686,3 +686,11 @@ body:has(.mini-player) .velinha-panel { bottom: 240px; max-height: calc(100dvh -
 .sug-note { margin: 0; padding: 8px 12px; border-radius: 10px; background: var(--surface); font-size: 13.5px; border-left: 3px solid var(--primary); }
 .sug-review { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 .sug-review .field { flex: 0 1 200px; }
+
+/* Painel: pontos cantados */
+.ponto-source { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.ponto-source legend { padding: 0 6px; font-weight: 600; font-size: 13.5px; }
+.ponto-source .chip { cursor: pointer; }
+.ponto-source .chip:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
+.ponto-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; cursor: pointer; }
+.ponto-check input { flex: none; width: 18px; height: 18px; margin-top: 1px; accent-color: var(--primary); }

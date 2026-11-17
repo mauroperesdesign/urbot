@@ -104,6 +104,7 @@ SUPABASE_SERVICE_ROLE_KEY=$SERVICE
 EOF
 umask 022
 setup_push
+setup_audio_tools
 chown -R biblioteca:biblioteca "$APP"
 sudo -u biblioteca -H bash -c "cd '$APP' && npm ci --no-audit --no-fund --loglevel=error && NEXT_TELEMETRY_DISABLED=1 npm run build" \
   || die "falha ao compilar o site"

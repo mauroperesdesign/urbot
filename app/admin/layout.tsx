@@ -10,6 +10,7 @@ const NAV_BASE = [
   { href: '/admin', label: 'Visão geral' },
   { href: '/admin/materiais', label: 'Materiais' },
   { href: '/admin/materiais/novo', label: 'Novo material' },
+  { href: '/admin/pontos', label: '🥁 Pontos cantados' },
   { href: '/admin/categorias', label: 'Categorias' },
   { href: '/admin/usuarios', label: 'Usuários e permissões' },
   { href: '/admin/sugestoes', label: 'Sugestões' },

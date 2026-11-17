@@ -500,6 +500,33 @@ try {
     await sb.from('material_suggestions').delete().eq('id', sug.id);
   });
 
+  await check('Pontos cantados no painel: arquivo de áudio e link do Spotify viram pontos publicados', async () => {
+    await admin.goto(`${BASE}/admin/pontos`);
+    const add = async (title, cat, src, val) => {
+      await admin.fill('input[name=title]', title);
+      await admin.selectOption('select[name=category]', { label: cat });
+      await admin.locator(`.ponto-source label:has(input[value=${src}])`).click();
+      if (src === 'file') await admin.setInputFiles('input[name=file]', val); else await admin.fill('input[name=url]', val);
+      if (src !== 'spotify') await admin.check('input[name=authorized]');
+      await admin.click('button:has-text("Adicionar ponto")');
+      await admin.locator(`.alert-ok:has-text("${title}")`).waitFor({ timeout: 60000 });
+    };
+    await add(`Ponto arquivo ${run}`, 'Preto Velho', 'file', path.join(FIX, '01 Faixa de teste 1.wav'));
+    await add(`Ponto Spotify ${run}`, 'Oxóssi', 'spotify', 'https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC');
+    const { data: rows } = await sb.from('materials').select('id, slug, status, files(role, path, external_url)').like('title', `Ponto % ${run}`);
+    assert(rows?.length === 2 && rows.every((r) => r.status === 'published'), `pontos: ${JSON.stringify(rows)}`);
+    const sp = rows.find((r) => r.files.some((f) => f.external_url));
+    await admin.goto(`${BASE}/material/${sp.slug}`);
+    assert((await admin.locator('#spotify iframe').getAttribute('src')).startsWith('https://open.spotify.com/embed/track/'), 'sem player do Spotify');
+    await admin.goto(`${BASE}/pontos-cantados?de=pontos-de-preto-velho`);
+    assert(await admin.locator(`text=Ponto arquivo ${run}`).count() > 0, 'ponto não aparece em Pontos cantados');
+    for (const r of rows) {
+      const paths = r.files.map((f) => f.path).filter(Boolean);
+      if (paths.length) await sb.storage.from('materials').remove(paths);
+      await sb.from('materials').delete().eq('id', r.id);
+    }
+  });
+
   await check('Admin: estatísticas mostram acessos', async () => {
     await admin.goto(`${BASE}/admin/estatisticas`);
     const tiles = await admin.locator('.stat-tile').allInnerTexts();

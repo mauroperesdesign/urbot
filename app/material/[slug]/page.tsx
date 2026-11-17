@@ -11,6 +11,7 @@ import { cancelCourseRequest, requestCourseAccess } from './actions';
 import { Reviews, Stars, reviewSummary, type Review } from './Reviews';
 import { TYPE_LABEL, LISTEN_TYPES, WATCH_TYPES, primaryAction, formatDuration } from '@/lib/labels';
 import type { FileRow, Material } from '@/lib/types';
+import { spotifyEmbed, spotifyRef } from '@/lib/media-links';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,8 @@ export default async function MaterialPage({ params, searchParams }: { params: {
       ])
     : [{ data: true }, { data: 0 }, { data: null }];
   const locked = isCourse && !courseAccess;
+  // Ponto/áudio que só existe no Spotify: toca pelo player oficial do Spotify
+  const spotify = main?.external_url ? spotifyRef(main.external_url) : null;
   const hasContent = isCourse ? !locked && !!course?.lessons.length : LISTEN_TYPES.includes(m.type) ? tracks.some((t) => t.path) : !!main?.path || !!main?.external_url;
 
   const categories = m.material_categories.map((c) => c.categories).filter(Boolean) as { id: string; name: string; slug: string }[];
@@ -164,6 +167,8 @@ export default async function MaterialPage({ params, searchParams }: { params: {
                   </form>
                 ) : <Link className="btn btn-primary" href={`/entrar?next=/material/${m.slug}`}>Entre para pedir acesso</Link>}
               </div>
+            ) : spotify ? (
+              <a href="#spotify" className="btn btn-primary" style={{ minHeight: 48 }}>Ouvir no Spotify <Icon name="headphones" size={18} /></a>
             ) : <p className="alert" style={{ margin: 0 }}>{isCourse ? 'Este curso ainda não tem aulas publicadas.' : 'O arquivo deste material ainda não foi enviado para a biblioteca.'}</p>}
             {user ? (
               <>
@@ -183,6 +188,15 @@ export default async function MaterialPage({ params, searchParams }: { params: {
               <h2 style={{ fontSize: 18 }}>Sobre</h2>
               {m.description ? <p style={{ margin: 0, fontSize: 15, lineHeight: 1.75, whiteSpace: 'pre-line' }}>{m.description}</p> : null}
               {categories.length ? <div className="row">{categories.map((c) => <Link key={c.id} href={`/acervo?categoria=${c.slug}`} className="chip">{c.name}</Link>)}</div> : null}
+            </section>
+          ) : null}
+
+          {spotify ? (
+            <section className="panel stack" id="spotify" aria-labelledby="h-spotify">
+              <h2 id="h-spotify" style={{ fontSize: 18 }}>Ouça no Spotify</h2>
+              <iframe title={`${m.title} no Spotify`} src={spotifyEmbed(spotify)} width="100%" height={spotify.kind === 'track' || spotify.kind === 'episode' ? 152 : 352}
+                style={{ border: 0, borderRadius: 12 }} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" />
+              <small className="muted">Player oficial do Spotify. Sem conta no Spotify, toca um trecho de 30 segundos.</small>
             </section>
           ) : null}
 
