@@ -35,6 +35,7 @@ export interface Material {
   isbn: string | null;
   organizer: string | null;
   tradition: string | null;
+  entity?: string | null;
   source_reference: string | null;
   keywords: string[];
   page_count: number | null;

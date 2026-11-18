@@ -33,6 +33,7 @@ export async function createPonto(form: FormData): Promise<Result> {
     description: lyrics, publication_authorized: authorized || !!spotify,
     original_source: spotify ? spotifyUrl(spotify) : null,
     rights_holder: String(form.get('rights_holder') ?? '').trim().slice(0, 300) || null,
+    entity: String(form.get('entity') ?? '').trim().replace(/\s+/g, ' ').slice(0, 200) || null,
   }).select('id, slug').single();
   if (error || !data) return { error: `Não foi possível criar o ponto: ${error?.message}` };
   await supabase.from('material_categories').insert({ material_id: data.id, category_id: category });

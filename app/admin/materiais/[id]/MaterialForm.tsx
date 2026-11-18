@@ -63,6 +63,7 @@ export function MaterialForm({ material, internal, categories, selected, authors
           <select name="language" defaultValue={m?.language ?? 'pt'}><option value="pt">Português</option><option value="es">Espanhol</option><option value="en">Inglês</option><option value="yo">Iorubá</option></select>
         </label>
         <label className="field">Tradição ou perspectiva<small>Se conhecida — casa, escola, vertente</small><input name="tradition" defaultValue={m?.tradition ?? ''} /></label>
+        <label className="field">Entidade<small>Para pontos cantados — ex.: Pai Joaquim de Angola</small><input name="entity" maxLength={200} defaultValue={m?.entity ?? ''} /></label>
         {isRead ? <>
           <label className="field">ISBN<input name="isbn" defaultValue={m?.isbn ?? ''} /></label>
           <label className="field">Nº de páginas<small>Preenchido ao enviar o PDF</small><input name="page_count" inputMode="numeric" defaultValue={m?.page_count ?? ''} /></label>

@@ -138,7 +138,8 @@ export default async function MaterialPage({ params, searchParams }: { params: {
           <h1 id="titulo">{m.title}</h1>
           {m.subtitle ? <p className="mhero-sub">{m.subtitle}</p> : null}
           <p className="mhero-by">
-            {authors.length ? <>por {authors.map((a, i) => <span key={a.authors!.slug}>{i ? ', ' : ''}<b>{a.authors!.name}</b></span>)}</> : 'Autor a confirmar'}
+            {m.entity ? <>Ponto de <b>{m.entity}</b>{authors.length ? ' · ' : ''}</> : null}
+            {authors.length ? <>por {authors.map((a, i) => <span key={a.authors!.slug}>{i ? ', ' : ''}<b>{a.authors!.name}</b></span>)}</> : m.entity ? null : 'Autor a confirmar'}
             {m.organizer ? <> · organização {m.organizer}</> : null}
           </p>
           {rated.count ? (
@@ -278,6 +279,7 @@ export default async function MaterialPage({ params, searchParams }: { params: {
             <dl className="ficha">
               {m.publishers?.name ? <><dt>Editora</dt><dd>{m.publishers.name}</dd></> : null}
               {m.year ? <><dt>Ano</dt><dd>{m.year}</dd></> : null}
+              {m.entity ? <><dt>Entidade</dt><dd>{m.entity}</dd></> : null}
               <dt>Idioma</dt><dd>{LANG[m.language] ?? m.language}</dd>
               {m.page_count ? <><dt>Páginas</dt><dd>{m.page_count}</dd></> : null}
               {m.duration_seconds ? <><dt>Duração</dt><dd>{formatDuration(m.duration_seconds)}</dd></> : null}

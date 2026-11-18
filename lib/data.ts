@@ -45,10 +45,10 @@ export async function withCoverUrls<T extends { cover_path: string | null }>(ite
   return items.map((i) => ({ ...i, coverUrl: i.cover_path ? pick(i.cover_path) : null }));
 }
 
-export const CARD_COLUMNS = 'id, slug, title, type, cover_path, material_authors(position, authors(name))';
+export const CARD_COLUMNS = 'id, slug, title, type, cover_path, entity, material_authors(position, authors(name))';
 
 type CardRow = {
-  id: string; slug: string; title: string; type: MaterialCardData['type']; cover_path: string | null;
+  id: string; slug: string; title: string; type: MaterialCardData['type']; cover_path: string | null; entity?: string | null;
   material_authors?: { position: number; authors: { name: string } | null }[];
 };
 
@@ -58,5 +58,6 @@ export function toCard(row: CardRow): MaterialCardData {
     .map((a) => a.authors?.name)
     .filter(Boolean)
     .join(', ');
-  return { id: row.id, slug: row.slug, title: row.title, type: row.type, cover_path: row.cover_path, authors };
+  // Pontos cantados sem autor mostram a entidade no cartão
+  return { id: row.id, slug: row.slug, title: row.title, type: row.type, cover_path: row.cover_path, authors: authors || row.entity || '' };
 }

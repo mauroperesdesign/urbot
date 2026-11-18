@@ -8,7 +8,7 @@ export type CatalogItem = { slug: string; title: string; type: MaterialType; aut
 
 type Row = {
   slug: string; title: string; subtitle: string | null; type: MaterialType; description: string | null;
-  page_count: number | null; duration_seconds: number | null; tradition: string | null;
+  page_count: number | null; duration_seconds: number | null; tradition: string | null; entity: string | null;
   material_authors: { position: number; authors: { name: string } | null }[];
   material_categories: { categories: { name: string } | null }[];
 };
@@ -17,7 +17,7 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trim
 
 export async function loadCatalog(supabase: SupabaseClient): Promise<CatalogItem[]> {
   const { data } = await supabase.from('materials')
-    .select('slug, title, subtitle, type, description, page_count, duration_seconds, tradition, material_authors(position, authors(name)), material_categories(categories(name))')
+    .select('slug, title, subtitle, type, description, page_count, duration_seconds, tradition, entity, material_authors(position, authors(name)), material_categories(categories(name))')
     .eq('status', 'published').order('title').order('slug').limit(1500);
   return ((data ?? []) as unknown as Row[]).map((m) => {
     const authors = m.material_authors.sort((a, b) => a.position - b.position).map((a) => a.authors?.name).filter(Boolean).join(', ');
@@ -25,7 +25,7 @@ export async function loadCatalog(supabase: SupabaseClient): Promise<CatalogItem
     const size = m.page_count ? `${m.page_count} págs.` : m.duration_seconds ? `${Math.round(m.duration_seconds / 60)} min` : '';
     const line = [
       `slug=${m.slug}`, `"${m.title}${m.subtitle ? `: ${m.subtitle}` : ''}"`, TYPE_LABEL[m.type],
-      authors && `por ${authors}`, size, categories.length && `temas: ${categories.join(', ')}`,
+      authors && `por ${authors}`, m.entity && `entidade: ${m.entity}`, size, categories.length && `temas: ${categories.join(', ')}`,
       m.tradition && `perspectiva: ${m.tradition}`,
       m.description && `— ${clip(m.description.replace(/\s+/g, ' ').trim(), 280)}`,
     ].filter(Boolean).join(' | ');

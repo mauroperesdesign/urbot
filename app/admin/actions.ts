@@ -43,6 +43,7 @@ export async function saveMaterial(_: SaveState, form: FormData): Promise<SaveSt
     isbn: str(form, 'isbn', 32),
     organizer: str(form, 'organizer', 200),
     tradition: str(form, 'tradition', 200),
+    entity: str(form, 'entity', 200),
     source_reference: str(form, 'source_reference', 1000),
     keywords: (str(form, 'keywords', 1000) ?? '').split(',').map((k) => k.trim()).filter(Boolean).slice(0, 40),
     page_count: int(form, 'page_count'),

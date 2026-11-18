@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 type Cat = { id: string; parent_id: string | null; slug: string; name: string; position: number };
 type Row = {
-  id: string; slug: string; title: string; status: string; duration_seconds: number | null; original_source: string | null;
+  id: string; slug: string; title: string; status: string; duration_seconds: number | null; original_source: string | null; entity: string | null;
   material_categories: { category_id: string }[];
   files: { role: string; path: string | null; external_url: string | null; transcript_status: string | null }[];
 };
@@ -30,7 +30,7 @@ export default async function PontosAdmin() {
 
   const { data } = ids.size
     ? await supabase.from('materials')
-        .select('id, slug, title, status, duration_seconds, original_source, material_categories!inner(category_id), files(role, path, external_url, transcript_status)')
+        .select('id, slug, title, status, duration_seconds, original_source, entity, material_categories!inner(category_id), files(role, path, external_url, transcript_status)')
         .in('material_categories.category_id', Array.from(ids)).order('created_at', { ascending: false }).limit(300)
     : { data: [] };
   const pontos = (data ?? []) as unknown as Row[];
@@ -56,7 +56,7 @@ export default async function PontosAdmin() {
       </div>
       <section className="card stack" style={{ padding: 20 }} aria-labelledby="h-novo-ponto">
         <h2 id="h-novo-ponto" style={{ fontSize: 18 }}>Novo ponto</h2>
-        <PontoForm groups={groups} />
+        <PontoForm groups={groups} entities={Array.from(new Set(pontos.map((p) => p.entity).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, 'pt-BR'))} />
       </section>
 
       <section className="card stack" style={{ padding: 20 }} aria-labelledby="h-lista-pontos">
@@ -67,7 +67,7 @@ export default async function PontosAdmin() {
               <thead><tr><th scope="col">Ponto</th><th scope="col">Para</th><th scope="col">Áudio</th><th scope="col">Letra</th><th scope="col">Situação</th><th scope="col"><span className="sr-only">Ações</span></th></tr></thead>
               <tbody>{pontos.map((p) => (
                 <tr key={p.id}>
-                  <td><Link href={`/material/${p.slug}`} style={{ fontWeight: 600 }}>{p.title}</Link>{p.duration_seconds ? <small className="muted"> · {formatDuration(p.duration_seconds)}</small> : null}</td>
+                  <td><Link href={`/material/${p.slug}`} style={{ fontWeight: 600 }}>{p.title}</Link>{p.duration_seconds ? <small className="muted"> · {formatDuration(p.duration_seconds)}</small> : null}{p.entity ? <small className="muted" style={{ display: 'block' }}>{p.entity}</small> : null}</td>
                   <td className="muted">{p.material_categories.map((c) => name.get(c.category_id)).filter(Boolean).join(', ')}</td>
                   <td>{origin(p)}</td>
                   <td className="muted" style={{ whiteSpace: 'nowrap' }}>{lyricsStatus(p)}</td>

@@ -26,7 +26,7 @@ function audioDuration(file: File) {
 }
 
 // Cadastro rápido de ponto cantado: arquivo de áudio, link do YouTube (o servidor baixa o MP3) ou link do Spotify (player oficial)
-export function PontoForm({ groups }: { groups: Group[] }) {
+export function PontoForm({ groups, entities = [] }: { groups: Group[]; entities?: string[] }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const [source, setSource] = useState<Source>('youtube');
@@ -85,6 +85,10 @@ export function PontoForm({ groups }: { groups: Group[] }) {
     <form ref={form} onSubmit={submit} className="stack ponto-form" style={{ ['--gap' as string]: '14px' }}>
       <div className="sug-grid">
         <label className="field">Nome do ponto *<input name="title" required minLength={2} maxLength={300} placeholder="Ex.: Ogum, beira-mar" /></label>
+        <label className="field">Entidade (opcional)<small>Quem é cantado no ponto — guia, Orixá ou falange</small>
+          <input name="entity" maxLength={200} list="entidades" placeholder="Ex.: Pai Joaquim de Angola, Caboclo Sete Flechas" />
+          <datalist id="entidades">{entities.map((e) => <option key={e} value={e} />)}</datalist>
+        </label>
         <label className="field">Para quem é o ponto *
           <select name="category" required defaultValue="">
             <option value="" disabled>Escolha o Orixá ou a linha</option>
