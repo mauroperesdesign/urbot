@@ -6,6 +6,9 @@ APP="$BASE/app"
 SB="$BASE/supabase"
 SECRETS="$BASE/segredos.env"
 
+# Instalações sem perguntas na tela (o Ubuntu às vezes pergunta quais serviços reiniciar)
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a NEEDRESTART_SUSPEND=1
+
 say() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m[aviso]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[erro]\033[0m %s\n' "$*" >&2; exit 1; }
