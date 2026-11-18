@@ -74,19 +74,33 @@ h1, h2, h3 { font-family: var(--sans); font-weight: 700; margin: 0; letter-spaci
 .sidebar { display: none; }
 .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .app-content { flex: 1; padding: 16px 16px 150px; }
+/* Computador: uma rolagem só (a da janela). O menu lateral fica fixo e só rola sozinho
+   quando não cabe na altura da tela. */
 @media (min-width: 1024px) {
   .app {
-    max-width: 1640px; margin: 20px auto; height: calc(100vh - 40px);
-    border-radius: 28px; overflow: hidden; box-shadow: 0 30px 80px rgba(23, 37, 84, 0.12);
-    width: calc(100% - 40px);
+    max-width: 1640px; margin: 20px auto; min-height: calc(100dvh - 40px);
+    border-radius: 28px; box-shadow: 0 30px 80px rgba(23, 37, 84, 0.12);
+    width: calc(100% - 40px); align-items: flex-start;
   }
   .sidebar {
     display: flex; flex-direction: column; gap: 6px; flex: 0 0 236px; padding: 26px 18px;
-    background: var(--surface); border-right: 1px solid var(--line); overflow-y: auto;
+    position: sticky; top: 20px; height: calc(100dvh - 40px); align-self: flex-start;
+    background: var(--surface); border-right: 1px solid var(--line); border-radius: 28px 0 0 28px;
+    overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: transparent transparent;
   }
-  .app-main { overflow-y: auto; }
+  .sidebar:hover, .sidebar:focus-within { scrollbar-color: var(--line-strong) transparent; }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+  .sidebar:hover::-webkit-scrollbar-thumb { background: var(--line-strong); }
+  .app-main { align-self: stretch; min-height: calc(100dvh - 40px); border-radius: 0 28px 28px 0; }
+  .app-main .topbar { border-radius: 0 28px 0 0; }
   .app-content { padding: 24px 28px 120px; }
 }
+/* Nada vaza para o lado: tabelas e listas largas rolam dentro do próprio quadro */
+body { overflow-x: clip; }
+.app-content { min-width: 0; max-width: 100%; }
+.app-content table.data { min-width: 0; }
 
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); padding: 0 8px; }
 .brand:hover { text-decoration: none; }
@@ -700,3 +714,11 @@ body:has(.mini-player) .velinha-panel { bottom: 240px; max-height: calc(100dvh -
 .voice-transcript.pending { color: var(--muted); font-style: italic; background: none; padding: 0; }
 .note-search { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
 .note-search input { flex: 1 1 240px; min-height: 42px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--ink); font: inherit; font-size: 14px; }
+/* Campos agrupados (fieldset) encolhem com a tela em vez de empurrar a página para o lado */
+fieldset { min-width: 0; }
+/* Campos nunca passam da largura da tela (ex.: listas de opções com nomes longos) */
+input, select, textarea { max-width: 100%; }
+.row > select, .row > .field, .row > label { min-width: 0; }
+.ponto-source .chips { flex-wrap: wrap; overflow: visible; }
+/* Textos escondidos para leitores de tela ficam presos ao quadro que rola (não alargam a página) */
+.table-wrap, .chips, .shelf, .cad-tabs, .cad-tools { position: relative; }

@@ -92,17 +92,17 @@ export default async function StatsPage({ searchParams }: { searchParams: { dias
             </div>
             <details>
               <summary className="muted" style={{ fontSize: 12.5, cursor: 'pointer' }}>Ver como tabela</summary>
-              <table className="data" style={{ marginTop: 8 }}>
+              <div className="table-wrap"><table className="data" style={{ marginTop: 8 }}>
                 <thead><tr><th scope="col">Dia</th><th scope="col">Acessos</th></tr></thead>
                 <tbody>{series.filter((d) => d.total).map((d) => <tr key={d.key}><td>{d.label}</td><td>{d.total}</td></tr>)}</tbody>
-              </table>
+              </table></div>
             </details>
           </section>
 
           <section className="card stack" style={{ padding: 20 }} aria-labelledby="h-top">
             <h2 id="h-top" style={{ fontSize: 16 }}>Mais acessados</h2>
             {s.top.length ? (
-              <table className="data">
+              <div className="table-wrap"><table className="data">
                 <thead><tr><th scope="col">Material</th><th scope="col">Formato</th><th scope="col">Pessoas</th><th scope="col">Iniciadas</th><th scope="col">Concluídas</th><th scope="col" style={{ width: '38%' }}>Acessos</th></tr></thead>
                 <tbody>{s.top.map((t) => (
                   <tr key={t.id}>
@@ -114,7 +114,7 @@ export default async function StatsPage({ searchParams }: { searchParams: { dias
                     <td><span className="hbar"><i style={{ width: `calc(${t.total / topMax} * (100% - 48px))` }} /><b>{t.total}</b></span></td>
                   </tr>
                 ))}</tbody>
-              </table>
+              </table></div>
             ) : <p className="muted" style={{ margin: 0 }}>Ainda não há acessos neste período.</p>}
             <small className="muted">Cada abertura do leitor, do player ou de um vídeo conta um acesso. “Iniciadas” e “Concluídas” contam as vezes que a leitura (ou audição, ou vídeo) começou e chegou ao fim no período. Os dados pessoais de leitura continuam privados: aqui aparecem só totais.</small>
           </section>

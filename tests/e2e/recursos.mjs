@@ -532,7 +532,7 @@ try {
     const tiles = await admin.locator('.stat-tile').allInnerTexts();
     assert(tiles.length === 6, `tiles: ${tiles.length}`);
     assert(await admin.locator('.daychart-col').count() === 30, 'gráfico diário incompleto');
-    assert((await admin.locator('#h-top ~ table tbody tr').count()) > 0, 'sem ranking');
+    assert((await admin.locator('section:has(#h-top) table tbody tr').count()) > 0, 'sem ranking');
   });
 
   await check('Admin: monta e reordena aulas do curso', async () => {
